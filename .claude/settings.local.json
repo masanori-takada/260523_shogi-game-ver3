@@ -8,7 +8,16 @@
       "PowerShell(& \".specify\\\\extensions\\\\git\\\\scripts\\\\powershell\\\\create-new-feature.ps1\" -Json -ShortName \"shogi-game\" \"将棋ゲームを作って\")",
       "PowerShell(New-Item *)",
       "PowerShell(& \".specify\\\\scripts\\\\powershell\\\\setup-plan.ps1\" -Json)",
-      "PowerShell(& \".specify\\\\scripts\\\\powershell\\\\setup-tasks.ps1\" -Json)"
+      "PowerShell(& \".specify\\\\scripts\\\\powershell\\\\setup-tasks.ps1\" -Json)",
+      "PowerShell(npm list *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
 }
