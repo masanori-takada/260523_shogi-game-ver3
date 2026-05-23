@@ -3,7 +3,12 @@
     "allow": [
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ユーザー\\\\Desktop\\\\ClaudeCode\\\\2026-05-23\" -Recurse -Force)",
       "Bash(Select-Object FullName, PSIsContainer)",
-      "Bash(Sort-Object FullName)"
+      "Bash(Sort-Object FullName)",
+      "PowerShell(& \"C:\\\\Users\\\\ユーザー\\\\Desktop\\\\ClaudeCode\\\\2026-05-23\\\\.specify\\\\extensions\\\\git\\\\scripts\\\\powershell\\\\initialize-repo.ps1\")",
+      "PowerShell(& \".specify\\\\extensions\\\\git\\\\scripts\\\\powershell\\\\create-new-feature.ps1\" -Json -ShortName \"shogi-game\" \"将棋ゲームを作って\")",
+      "PowerShell(New-Item *)",
+      "PowerShell(& \".specify\\\\scripts\\\\powershell\\\\setup-plan.ps1\" -Json)",
+      "PowerShell(& \".specify\\\\scripts\\\\powershell\\\\setup-tasks.ps1\" -Json)"
     ]
   }
 }

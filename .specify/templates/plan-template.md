@@ -40,7 +40,11 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] Feature has an approved `spec.md` with at least one independently testable user story
+- [ ] P1 user story is clearly identified and constitutes a standalone MVP
+- [ ] All user stories are independently testable and deliverable without cross-story dependencies
+- [ ] Test tasks are listed before implementation tasks for every user story
+- [ ] All specification artifacts are scoped to the feature branch
 
 ## Project Structure
 
