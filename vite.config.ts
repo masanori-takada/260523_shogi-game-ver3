@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  base: '/260523_shogi-game/',
   // テスト設定
   test: {
     environment: 'jsdom',
