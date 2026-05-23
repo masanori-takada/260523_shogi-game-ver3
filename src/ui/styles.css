@@ -1,0 +1,403 @@
+/* ============================================================
+   将棋ゲーム スタイルシート
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Hiragino Kaku Gothic Pro', 'Noto Sans JP', sans-serif;
+  background: #2c1810;
+  color: #333;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#app {
+  width: 100%;
+  max-width: 800px;
+  padding: 16px;
+}
+
+/* ============================================================
+   モード選択・難易度選択画面
+   ============================================================ */
+
+.app-title {
+  font-size: 3rem;
+  text-align: center;
+  color: #f5deb3;
+  margin-bottom: 32px;
+}
+
+.mode-select, .difficulty-select {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.mode-buttons, .difficulty-buttons {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.mode-btn, .difficulty-btn {
+  padding: 16px 32px;
+  font-size: 1.2rem;
+  background: #8b4513;
+  color: #f5deb3;
+  border: 2px solid #d2691e;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-width: 160px;
+}
+
+.mode-btn:hover, .difficulty-btn:hover {
+  background: #a0522d;
+}
+
+.back-btn {
+  padding: 8px 24px;
+  background: transparent;
+  color: #f5deb3;
+  border: 1px solid #f5deb3;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* ============================================================
+   対局画面レイアウト
+   ============================================================ */
+
+.game-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 500px;
+  padding: 8px 0;
+}
+
+.turn-indicator {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #f5deb3;
+}
+
+.resign-btn {
+  padding: 6px 16px;
+  background: #8b0000;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.game-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* ============================================================
+   将棋盤
+   ============================================================ */
+
+.shogi-board {
+  position: relative;
+  user-select: none;
+}
+
+.board-col-labels {
+  display: grid;
+  grid-template-columns: 24px repeat(9, 1fr);
+  margin-bottom: 2px;
+  color: #f5deb3;
+  font-size: 0.75rem;
+  text-align: center;
+  max-width: 500px;
+}
+
+.board-grid {
+  border: 3px solid #5c3317;
+  background: #f5deb3;
+}
+
+.board-row {
+  display: grid;
+  grid-template-columns: 24px repeat(9, 1fr);
+  align-items: center;
+}
+
+.board-row-label {
+  color: #f5deb3;
+  font-size: 0.75rem;
+  text-align: center;
+  background: #2c1810;
+}
+
+.board-cell {
+  width: clamp(36px, 5.5vw, 52px);
+  height: clamp(36px, 5.5vw, 52px);
+  border: 1px solid #8b6914;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.1s;
+}
+
+.board-cell:hover {
+  background: rgba(255, 215, 0, 0.2);
+}
+
+.board-cell.selected {
+  background: rgba(255, 165, 0, 0.5);
+}
+
+.board-cell.highlight {
+  background: rgba(144, 238, 144, 0.4);
+}
+
+.move-dot {
+  width: 30%;
+  height: 30%;
+  border-radius: 50%;
+  background: rgba(0, 128, 0, 0.5);
+  pointer-events: none;
+}
+
+/* ============================================================
+   駒
+   ============================================================ */
+
+.piece {
+  width: 90%;
+  height: 90%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(14px, 2vw, 20px);
+  font-weight: bold;
+  border-radius: 3px;
+  clip-path: polygon(50% 0%, 90% 20%, 100% 100%, 0% 100%, 10% 20%);
+  pointer-events: none;
+}
+
+.piece.sente {
+  background: #f5e6c8;
+  color: #2c1810;
+}
+
+.piece.gote {
+  background: #f5e6c8;
+  color: #2c1810;
+  transform: rotate(180deg);
+}
+
+/* ============================================================
+   持ち駒エリア
+   ============================================================ */
+
+.hand-area {
+  width: 100%;
+  max-width: 500px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px 12px;
+  min-height: 56px;
+}
+
+.hand-label {
+  font-size: 0.75rem;
+  color: #ccc;
+  margin-bottom: 4px;
+}
+
+.hand-pieces {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hand-piece {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #f5e6c8;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.1s;
+  min-width: 40px;
+  justify-content: center;
+}
+
+.hand-piece:hover {
+  border-color: #ffa500;
+}
+
+.hand-piece.selected {
+  border-color: #ff6600;
+  background: rgba(255, 165, 0, 0.3);
+}
+
+.hand-piece-char {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #2c1810;
+}
+
+.hand-piece-count {
+  font-size: 0.7rem;
+  color: #555;
+}
+
+/* ============================================================
+   王手インジケーター
+   ============================================================ */
+
+.check-indicator {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #cc0000;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-weight: bold;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+.check-indicator.hidden {
+  display: none;
+}
+
+@keyframes pulse {
+  from { opacity: 0.8; }
+  to   { opacity: 1.0; }
+}
+
+/* 思考中 */
+.thinking .board-grid {
+  opacity: 0.8;
+}
+
+/* ============================================================
+   ダイアログ
+   ============================================================ */
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+  min-width: 240px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.dialog h3, .dialog h2 {
+  margin-bottom: 16px;
+  font-size: 1.3rem;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.dialog-buttons button {
+  padding: 10px 24px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #8b4513;
+  color: white;
+}
+
+.dialog-buttons button:hover {
+  background: #a0522d;
+}
+
+.game-over-title {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+}
+
+.game-over-message {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #8b0000;
+  margin-bottom: 8px;
+}
+
+.game-over-moves {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+#btn-play-again {
+  padding: 10px 28px;
+  background: #8b4513;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+/* ============================================================
+   レスポンシブ
+   ============================================================ */
+
+@media (max-width: 480px) {
+  .board-cell {
+    width: 36px;
+    height: 36px;
+  }
+
+  .piece {
+    font-size: 13px;
+  }
+
+  .mode-btn, .difficulty-btn {
+    min-width: 130px;
+    padding: 12px 20px;
+    font-size: 1rem;
+  }
+}

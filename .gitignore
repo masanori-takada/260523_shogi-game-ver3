@@ -1,0 +1,31 @@
+# 依存関係
+node_modules/
+
+# ビルド成果物
+dist/
+build/
+
+# 環境変数
+.env
+.env.*
+!.env.example
+
+# ログ
+*.log
+npm-debug.log*
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db
+
+# エディタ設定
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# テストカバレッジ
+coverage/
+
+# キャッシュ
+.vite/

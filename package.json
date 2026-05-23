@@ -1,0 +1,22 @@
+{
+  "name": "shogi",
+  "version": "1.0.0",
+  "description": "将棋ゲーム — 人間対人間・人間対AI対応のブラウザ将棋",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11",
+    "vitest": "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "jsdom": "^24.1.0",
+    "@types/jsdom": "^21.1.7"
+  }
+}
