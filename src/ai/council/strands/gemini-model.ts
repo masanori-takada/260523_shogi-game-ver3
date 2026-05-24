@@ -6,7 +6,7 @@
 import { GoogleModel } from '@strands-agents/sdk/models/google'
 
 /** 全 Strands Agent で共通の Gemini モデル ID */
-export const STRANDS_GEMINI_MODEL = 'gemini-2.0-flash-lite'
+export const STRANDS_GEMINI_MODEL = 'gemini-3.1-flash-lite'
 
 /** APIキーから GoogleModel インスタンスを生成 */
 export function createGoogleModel(apiKey: string): GoogleModel {
