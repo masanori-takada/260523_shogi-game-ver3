@@ -311,7 +311,29 @@ export class UIController {
     this.notifyUpdate()
 
     try {
-      const decision = await this.councilEngine.deliberate(gs, gs.currentTurn)
+      const decision = await this.councilEngine.deliberate(gs, gs.currentTurn, (update) => {
+        if (update.phase === 'subs') {
+          this.uiStateInternal = {
+            ...this.uiStateInternal,
+            councilSession: {
+              ...thinkingSession,
+              isThinking: true,
+              thinkingPhase: 'subs',
+            },
+          }
+        } else if (update.phase === 'commander') {
+          this.uiStateInternal = {
+            ...this.uiStateInternal,
+            councilSession: {
+              ...thinkingSession,
+              isThinking: true,
+              thinkingPhase: 'commander',
+              partialDecision: update.partial,
+            },
+          }
+        }
+        this.notifyUpdate()
+      })
 
       // councilSession を更新してUIに通知
       const updatedSession: CouncilSession = {
@@ -325,7 +347,6 @@ export class UIController {
       }
       this.notifyUpdate()
 
-      // 着手
       this.executeMove(decision.finalMove)
     } finally {
       const session = this.uiStateInternal.councilSession as CouncilSession | undefined

@@ -88,6 +88,15 @@ export interface CouncilDecision {
 // ------------------------------------------------------------
 export interface CouncilSession {
   isThinking: boolean               // 審議中フラグ
+  /** 審議中の段階（subs=三軍師 LLM / commander=総大将 LLM） */
+  thinkingPhase?: 'subs' | 'commander'
+  /** Phase1 完了後の中間結果（UI 段階表示用） */
+  partialDecision?: Pick<CouncilDecision, 'attackerProposal' | 'defenderProposal' | 'strategistAssessment'>
   currentDecision?: CouncilDecision // 最新の審議結果
   decisionHistory: CouncilDecision[]// 全手番の審議ログ
 }
+
+/** 審議進捗コールバック用 */
+export type CouncilProgressUpdate =
+  | { phase: 'subs' }
+  | { phase: 'commander'; partial: Pick<CouncilDecision, 'attackerProposal' | 'defenderProposal' | 'strategistAssessment'> }

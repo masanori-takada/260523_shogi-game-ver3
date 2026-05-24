@@ -27,7 +27,7 @@ describe('CouncilEngine 統合テスト', () => {
     expect(['ATTACK', 'DEFENSE', 'BALANCE']).toContain(decision.aiMode)
     expect(typeof decision.ruleExplanation).toBe('string')
     expect(typeof decision.isFallback).toBe('boolean')
-  }, 15000)
+  }, 20000)
 
   it('deliberate() の finalMove は合法手である', async () => {
     const config = {
@@ -43,5 +43,5 @@ describe('CouncilEngine 統合テスト', () => {
 
     const isLegal = legalMoves.some(m => JSON.stringify(m) === JSON.stringify(decision.finalMove))
     expect(isLegal).toBe(true)
-  }, 15000)
+  }, 20000)
 })

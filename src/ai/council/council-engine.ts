@@ -11,32 +11,37 @@ import { defenderPropose } from './defender.js'
 import { strategistAssess } from './strategist.js'
 import { applyCommanderRules } from './commander.js'
 import { strandsCommanderDeliberate } from './strands/commander-agent.js'
-import type { CouncilDecision, CouncilSession } from './types.js'
+import type { CouncilDecision, CouncilProgressUpdate, CouncilSession } from './types.js'
 
-/** タイムアウト時間（ミリ秒）— LLM 合議は3秒以内 */
-const TIMEOUT_MS = 3_000
+/** LLM 合議タイムアウト（モバイル回線でも完走できるよう5秒） */
+export const COUNCIL_LLM_TIMEOUT_MS = 5_000
 
 /** 探索深度（エージェントAIモード用） */
 const AGENT_SEARCH_DEPTH = 3
 
+const LLM_RETRY_COUNT = 2
+
 /**
- * APIキーを優先度順に解決する
- * 1. 明示的に渡されたキー
- * 2. Vite環境変数（VITE_GEMINI_API_KEY）
- * 3. localStorage
- * ※ APIキーは .env.local に VITE_GEMINI_API_KEY=... として設定してください
+ * APIキーを解決（PC/スマホ同一: ビルド埋め込みキーを優先）
+ * 1. Vite環境変数（VITE_GEMINI_API_KEY — Pages ビルドで全端末共通）
+ * 2. localStorage（ユーザー手入力）
+ * 3. コンストラクタ明示指定
  */
 function resolveApiKey(explicit?: string): string | undefined {
-  if (explicit) return explicit
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const envKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) as string | undefined
-  if (envKey) return envKey
+  if (envKey && envKey.length > 0) return envKey
   try {
-    return localStorage.getItem('shogi-gemini-api-key') ?? undefined
+    const stored = localStorage.getItem('shogi-gemini-api-key')
+    if (stored && stored.length > 0) return stored
   } catch {
-    return undefined
+    // private browsing 等
   }
+  if (explicit) return explicit
+  return undefined
 }
+
+export type CouncilProgressCallback = (update: CouncilProgressUpdate) => void
 
 export class CouncilEngine {
   private session: CouncilSession = {
@@ -53,20 +58,21 @@ export class CouncilEngine {
     return { ...this.session }
   }
 
-  /**
-   * 合議制で最善手を決定する
-   * @param state   現在の局面
-   * @param side    AIの手番
-   */
+  /** APIキーが解決されているか（デバッグ用） */
+  get hasApiKey(): boolean {
+    return !!this.apiKey
+  }
+
   async deliberate(
     state: GameState,
     side: PlayerSide,
+    onProgress?: CouncilProgressCallback,
   ): Promise<CouncilDecision> {
     this.session.isThinking = true
 
     try {
       const decision = await Promise.race([
-        this._runCouncil(state, side),
+        this._runCouncil(state, side, onProgress),
         this._timeout(),
       ]) as CouncilDecision
 
@@ -82,20 +88,32 @@ export class CouncilEngine {
     }
   }
 
-  /** 審議実行（内部） */
   private async _runCouncil(
     state: GameState,
     side: PlayerSide,
+    onProgress?: CouncilProgressCallback,
   ): Promise<CouncilDecision> {
     const wantedLlm = !!this.apiKey
 
     if (this.apiKey) {
-      try {
-        const decision = await strandsCommanderDeliberate(state, side, this.apiKey)
-        return { ...decision, isFallback: false }
-      } catch (err) {
-        console.warn('[CouncilEngine] Strands失敗、ルールベースにフォールバック:', err)
+      let lastErr: unknown
+      for (let attempt = 0; attempt < LLM_RETRY_COUNT; attempt++) {
+        try {
+          const decision = await strandsCommanderDeliberate(
+            state,
+            side,
+            this.apiKey,
+            onProgress,
+          )
+          return { ...decision, isFallback: false }
+        } catch (err) {
+          lastErr = err
+          if (attempt < LLM_RETRY_COUNT - 1) {
+            console.warn('[CouncilEngine] Strands失敗、リトライします:', err)
+          }
+        }
       }
+      console.warn('[CouncilEngine] Strands失敗、ルールベースにフォールバック:', lastErr)
     }
 
     const [attacker, defender, strategist] = await Promise.all([
@@ -111,19 +129,16 @@ export class CouncilEngine {
       defenderProposal: defender,
       strategistAssessment: strategist,
       ...commanderResult,
-      // APIキーありで LLM 失敗時は ⚡ 表示（PC/スマホで同じ判定）
       isFallback: wantedLlm,
     }
   }
 
-  /** タイムアウトPromise */
   private _timeout(): Promise<never> {
     return new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('CouncilEngine timeout')), TIMEOUT_MS)
+      setTimeout(() => reject(new Error('CouncilEngine timeout')), COUNCIL_LLM_TIMEOUT_MS),
     )
   }
 
-  /** フォールバック：既存Minimaxエンジン（上級相当）で応手 */
   private _fallbackDecision(state: GameState, side: PlayerSide): CouncilDecision {
     const move = findBestMove(state, side, Difficulty.ADVANCED)
 

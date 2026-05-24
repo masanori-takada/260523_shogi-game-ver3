@@ -12,6 +12,7 @@ import {
   CommanderRule,
   RULE_TO_MODE,
   type CouncilDecision,
+  type CouncilProgressUpdate,
   type SubAgentProposal,
   type StrategistAssessment,
 } from '../types.js'
@@ -25,9 +26,6 @@ import {
 } from './sub-agents.js'
 import { commanderOutputSchema, type CommanderOutput } from './schemas.js'
 
-/** CouncilEngine の全体タイムアウト（3秒）より少し短く */
-export const STRANDS_TIMEOUT_MS = 2_800
-
 const COMMANDER_SYSTEM = `あなたは将棋AIの「総大将」です。
 三軍師の提案テキストを読み、以下のルールで最終手を決定してください。
 
@@ -38,14 +36,7 @@ RULE-3（通常）: 形勢スコアと各スコアを比較して判断
 
 最終回答は structured output で selectedAgent, appliedRule, explanation を返してください。`
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timeout (${ms}ms)`)), ms),
-    ),
-  ])
-}
+export type StrandsProgressCallback = (update: CouncilProgressUpdate) => void
 
 /** CommanderOutput → CouncilDecision の一部 */
 function mapCommanderOutput(
@@ -94,15 +85,22 @@ function formatProposalsForCommander(
   ].join('\n')
 }
 
-async function runDeliberation(
+/**
+ * Strands 合議実行（最大4 LLM 呼び出し: 三軍師並列 + 総大将1回）
+ * タイムアウトは CouncilEngine 側で管理
+ */
+export async function strandsCommanderDeliberate(
   state: GameState,
   side: PlayerSide,
   apiKey: string,
+  onProgress?: StrandsProgressCallback,
 ): Promise<Omit<CouncilDecision, 'isFallback'>> {
   const legalMoves = getLegalMovesForState(state)
   if (legalMoves.length === 0) {
     throw new Error('No legal moves available')
   }
+
+  onProgress?.({ phase: 'subs' })
 
   const context = gameStateToPromptContext(state, side)
   const legalText = formatLegalMoves(legalMoves)
@@ -112,6 +110,9 @@ async function runDeliberation(
     invokeDefenderAgent(apiKey, state, side, legalMoves),
     invokeStrategistAgent(apiKey, state, side, legalMoves),
   ])
+
+  const partial = { attackerProposal: attacker, defenderProposal: defender, strategistAssessment: strategist }
+  onProgress?.({ phase: 'commander', partial })
 
   const commanderAgent = new Agent({
     name: 'commander',
@@ -124,7 +125,7 @@ async function runDeliberation(
 
   const proposalText = formatProposalsForCommander(attacker, defender, strategist)
   const result = await commanderAgent.invoke(
-    `${context}\n\n${proposalText}\n\n上記の三軍師意見に基づき最終手を決定してください。`,
+    `${context}\n\n${legalText}\n\n${proposalText}\n\n上記の三軍師意見に基づき最終手を決定してください。`,
   )
 
   const output = result.structuredOutput as CommanderOutput | undefined
@@ -135,24 +136,7 @@ async function runDeliberation(
   const commanderPart = mapCommanderOutput(output, attacker, defender, strategist)
 
   return {
-    attackerProposal: attacker,
-    defenderProposal: defender,
-    strategistAssessment: strategist,
+    ...partial,
     ...commanderPart,
   }
-}
-
-/**
- * Strands 合議実行（最大4 LLM 呼び出し: 三軍師並列 + 総大将1回、2.8秒上限）
- */
-export function strandsCommanderDeliberate(
-  state: GameState,
-  side: PlayerSide,
-  apiKey: string,
-): Promise<Omit<CouncilDecision, 'isFallback'>> {
-  return withTimeout(
-    runDeliberation(state, side, apiKey),
-    STRANDS_TIMEOUT_MS,
-    'Strands',
-  )
 }

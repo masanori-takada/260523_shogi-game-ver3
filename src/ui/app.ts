@@ -175,9 +175,13 @@ function showGameScreen(root: HTMLElement, config: GameConfig): void {
     if (councilPanel && isAgentAI) {
       const session = uiState.councilSession as CouncilSession | undefined
       if (session?.isThinking) {
-        councilPanel.showThinking()
+        if (session.partialDecision) {
+          councilPanel.showPartial(session.partialDecision)
+        } else {
+          councilPanel.showThinking(session.thinkingPhase)
+        }
         if (modeBadgeEl) {
-          modeBadgeEl.textContent = '⏳ 審議中...'
+          modeBadgeEl.textContent = session.thinkingPhase === 'commander' ? '👑 総大将裁定中...' : '⏳ 三軍師審議中...'
           modeBadgeEl.className = 'ai-mode-badge mode-thinking'
         }
       } else if (session?.currentDecision) {

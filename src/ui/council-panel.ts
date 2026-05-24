@@ -98,12 +98,44 @@ export class CouncilPanel {
   }
 
   /** 審議中状態を表示 */
-  showThinking(): void {
-    const thinking = '🤔 思考中...'
+  showThinking(phase?: 'subs' | 'commander'): void {
+    const thinking = phase === 'commander' ? '👑 裁定中...' : '🤔 思考中...'
     this._updateAgent('council-attacker',  `<span class="agent-thinking">${thinking}</span>`)
     this._updateAgent('council-defender',  `<span class="agent-thinking">${thinking}</span>`)
     this._updateAgent('council-strategist',`<span class="agent-thinking">${thinking}</span>`)
-    this._updateAgent('council-commander', `<span class="agent-thinking">審議中...</span>`)
+    this._updateAgent('council-commander', `<span class="agent-thinking">${phase === 'commander' ? '👑 裁定中...' : '審議中...'}</span>`)
+  }
+
+  /** Phase1 完了後: 三軍師結果を表示し総大将のみ思考中 */
+  showPartial(
+    partial: Pick<CouncilDecision, 'attackerProposal' | 'defenderProposal' | 'strategistAssessment'>,
+  ): void {
+    const attackerEval = scoreToLabel(partial.attackerProposal.score)
+    const mateText = partial.attackerProposal.mateIn !== undefined
+      ? `<span class="agent-mate">🎯 詰み${partial.attackerProposal.mateIn}手！</span>`
+      : ''
+    this._updateAgent('council-attacker', `
+      <span class="agent-eval ${attackerEval.cssClass}">${attackerEval.label}</span>
+      ${mateText}
+    `)
+
+    const defenderEval = scoreToLabel(partial.defenderProposal.score)
+    this._updateAgent('council-defender', `
+      <span class="agent-eval ${defenderEval.cssClass}">${defenderEval.label}</span>
+    `)
+
+    const posEval = posScoreToLabel(partial.strategistAssessment.positionalScore)
+    const dangerClass = {
+      SAFE:    'danger-safe',
+      CAUTION: 'danger-caution',
+      DANGER:  'danger-high',
+    }[partial.strategistAssessment.dangerLevel]
+    this._updateAgent('council-strategist', `
+      <span class="danger-level ${dangerClass}">${partial.strategistAssessment.dangerLevel}</span>
+      <span class="agent-eval ${posEval.cssClass}">${posEval.label}</span>
+    `)
+
+    this._updateAgent('council-commander', `<span class="agent-thinking">👑 裁定中...</span>`)
   }
 
   /** 審議結果を表示（バッジ・ラベルのみ。手や評価文は表示しない） */
