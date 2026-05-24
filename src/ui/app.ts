@@ -112,9 +112,11 @@ function showGameScreen(root: HTMLElement, config: GameConfig): void {
         <button class="resign-btn" id="btn-resign">投了</button>
       </div>
       <div class="game-layout">
-        <div class="hand-container" id="hand-gote"></div>
-        <div class="board-container" id="board-container"></div>
-        <div class="hand-container" id="hand-sente"></div>
+        <div class="board-area">
+          <div class="hand-container" id="hand-gote"></div>
+          <div class="board-container" id="board-container"></div>
+          <div class="hand-container" id="hand-sente"></div>
+        </div>
         ${isAgentAI ? '<div class="council-panel-container" id="council-panel-container"></div>' : ''}
       </div>
     </div>

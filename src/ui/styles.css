@@ -119,6 +119,14 @@ body {
   width: 100%;
 }
 
+/* 盤面エリア（持ち駒上下 + 盤面のラッパー） */
+.board-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ============================================================
    将棋盤
    ============================================================ */
@@ -448,15 +456,22 @@ body {
    エージェントAI: ゲーム画面レイアウト
    ============================================================ */
 
-.game-screen--agent #app,
-.game-screen--agent {
+/* Agent mode: #app を広げる */
+body:has(.game-screen--agent) #app {
   max-width: 1100px;
 }
 
+/* Agent mode: ゲームヘッダーをフル幅に */
+.game-screen--agent .game-header {
+  max-width: 100%;
+}
+
+/* Agent mode: 盤面エリアと審議パネルを横並び */
 .game-screen--agent .game-layout {
-  display: flex;
+  flex-direction: row;
   align-items: flex-start;
-  gap: 12px;
+  justify-content: center;
+  gap: 16px;
 }
 
 .council-panel-container {
@@ -519,7 +534,21 @@ body {
 
 .agent-body span { display: block; }
 .agent-move { color: #89dceb; font-weight: bold; }
-.agent-score { color: #a6e3a1; }
+
+/* 形勢ラベル（数字の代わりにわかりやすいテキスト） */
+.agent-eval {
+  font-weight: bold;
+  display: inline-block !important;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+.score-strong { background: #a6e3a1; color: #1e1e2e; } /* 大優勢 */
+.score-up     { background: #89dceb; color: #1e1e2e; } /* 優勢・やや有利 */
+.score-even   { background: #585b70; color: #cdd6f4; } /* 互角 */
+.score-down   { background: #f9e2af; color: #1e1e2e; } /* やや不利・不利 */
+.score-weak   { background: #f38ba8; color: #1e1e2e; } /* 大劣勢 */
+
 .agent-mate { color: #fab387; font-weight: bold; }
 .agent-reasoning { color: #cdd6f4; font-size: 0.7rem; }
 .agent-thinking { color: #6c7086; font-style: italic; }
@@ -551,26 +580,11 @@ body {
    レスポンシブ
    ============================================================ */
 
-@media (max-width: 480px) {
-  .board-cell {
-    width: 36px;
-    height: 36px;
-  }
-
-  .piece {
-    font-size: 13px;
-  }
-
-  .mode-btn, .difficulty-btn {
-    min-width: 130px;
-    padding: 12px 20px;
-    font-size: 1rem;
-  }
-
-  /* ----------------------------------------
-     エージェントAI: モバイルレイアウト調整
-     ---------------------------------------- */
-
+/* ----------------------------------------
+   ≤640px: エージェントAI審議パネルをモバイル対応
+   （盤面エリアの上に横4カード表示）
+   ---------------------------------------- */
+@media (max-width: 640px) {
   /* ゲームレイアウトを縦積みに戻す */
   .game-screen--agent .game-layout {
     flex-direction: column;
@@ -624,8 +638,13 @@ body {
     font-size: 0.65rem;
   }
 
-  /* スコア（数字）・評価文（文章）を非表示 */
-  .agent-score,
+  /* 形勢ラベルを小さめに（非表示にはしない） */
+  .agent-eval {
+    font-size: 0.6rem !important;
+    padding: 1px 4px;
+  }
+
+  /* 評価文・詳細情報は非表示 */
   .agent-reasoning,
   .proverb-violation,
   .proverb-ok,
@@ -651,5 +670,25 @@ body {
   .danger-level {
     font-size: 0.65rem;
     padding: 1px 3px;
+  }
+}
+
+/* ----------------------------------------
+   ≤480px: 小型スマートフォン向けボードサイズ調整
+   ---------------------------------------- */
+@media (max-width: 480px) {
+  .board-cell {
+    width: 36px;
+    height: 36px;
+  }
+
+  .piece {
+    font-size: 13px;
+  }
+
+  .mode-btn, .difficulty-btn {
+    min-width: 130px;
+    padding: 12px 20px;
+    font-size: 1rem;
   }
 }

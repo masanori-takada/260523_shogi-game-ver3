@@ -5,6 +5,41 @@
 import type { CouncilDecision } from '../ai/council/types.js'
 import { MODE_DISPLAY } from '../ai/council/types.js'
 
+// ------------------------------------------------------------
+// スコアラベル変換ヘルパー
+// ------------------------------------------------------------
+
+interface ScoreLabel {
+  label: string
+  cssClass: string
+}
+
+/** 猛将・智将のスコアをわかりやすいラベルに変換 */
+function scoreToLabel(score: number): ScoreLabel {
+  if (score > 500)  return { label: '大優勢', cssClass: 'score-strong' }
+  if (score > 200)  return { label: '優勢',   cssClass: 'score-up'    }
+  if (score > 50)   return { label: 'やや有利', cssClass: 'score-up'  }
+  if (score > -50)  return { label: '互角',    cssClass: 'score-even'  }
+  if (score > -200) return { label: 'やや不利', cssClass: 'score-down' }
+  if (score > -500) return { label: '不利',    cssClass: 'score-down'  }
+  return                   { label: '大劣勢',  cssClass: 'score-weak'  }
+}
+
+/** 審判の形勢スコアをわかりやすいラベルに変換 */
+function posScoreToLabel(score: number): ScoreLabel {
+  if (score > 500)  return { label: '大優勢', cssClass: 'score-strong' }
+  if (score > 200)  return { label: '優勢',   cssClass: 'score-up'    }
+  if (score > 50)   return { label: 'やや有利', cssClass: 'score-up'  }
+  if (score > -50)  return { label: '互角',    cssClass: 'score-even'  }
+  if (score > -200) return { label: 'やや不利', cssClass: 'score-down' }
+  if (score > -500) return { label: '不利',    cssClass: 'score-down'  }
+  return                   { label: '大劣勢',  cssClass: 'score-weak'  }
+}
+
+// ------------------------------------------------------------
+// CouncilPanel クラス
+// ------------------------------------------------------------
+
 export class CouncilPanel {
   private container: HTMLElement
 
@@ -65,44 +100,47 @@ export class CouncilPanel {
   /** 審議中状態を表示 */
   showThinking(): void {
     const thinking = '🤔 思考中...'
-    this._updateAgent('council-attacker', `<span class="agent-thinking">${thinking}</span>`)
-    this._updateAgent('council-defender', `<span class="agent-thinking">${thinking}</span>`)
-    this._updateAgent('council-strategist', `<span class="agent-thinking">${thinking}</span>`)
+    this._updateAgent('council-attacker',  `<span class="agent-thinking">${thinking}</span>`)
+    this._updateAgent('council-defender',  `<span class="agent-thinking">${thinking}</span>`)
+    this._updateAgent('council-strategist',`<span class="agent-thinking">${thinking}</span>`)
     this._updateAgent('council-commander', `<span class="agent-thinking">審議中...</span>`)
   }
 
   /** 審議結果を表示 */
   showDecision(decision: CouncilDecision): void {
     // 猛将の結果
+    const attackerEval = scoreToLabel(decision.attackerProposal.score)
     const mateText = decision.attackerProposal.mateIn !== undefined
       ? `<span class="agent-mate">🎯 詰み${decision.attackerProposal.mateIn}手！</span>`
       : ''
     this._updateAgent('council-attacker', `
       <span class="agent-move">${this._formatMove(decision.attackerProposal.move)}</span>
-      <span class="agent-score">${decision.attackerProposal.score > 0 ? '+' : ''}${decision.attackerProposal.score}</span>
+      <span class="agent-eval ${attackerEval.cssClass}">${attackerEval.label}</span>
       ${mateText}
       <span class="agent-reasoning">${decision.attackerProposal.reasoning}</span>
     `)
 
     // 智将の結果
+    const defenderEval = scoreToLabel(decision.defenderProposal.score)
     this._updateAgent('council-defender', `
       <span class="agent-move">${this._formatMove(decision.defenderProposal.move)}</span>
-      <span class="agent-score">${decision.defenderProposal.score > 0 ? '+' : ''}${decision.defenderProposal.score}</span>
+      <span class="agent-eval ${defenderEval.cssClass}">${defenderEval.label}</span>
       <span class="agent-reasoning">${decision.defenderProposal.reasoning}</span>
     `)
 
     // 審判の結果
+    const posEval = posScoreToLabel(decision.strategistAssessment.positionalScore)
     const dangerClass = {
-      SAFE: 'danger-safe',
+      SAFE:    'danger-safe',
       CAUTION: 'danger-caution',
-      DANGER: 'danger-high',
+      DANGER:  'danger-high',
     }[decision.strategistAssessment.dangerLevel]
     const proverbText = decision.strategistAssessment.proverbViolations.length > 0
       ? `<span class="proverb-violation">⚠️ ${decision.strategistAssessment.proverbViolations[0]!.proverb}</span>`
       : `<span class="proverb-ok">✅ 格言違反なし</span>`
     this._updateAgent('council-strategist', `
       <span class="danger-level ${dangerClass}">${decision.strategistAssessment.dangerLevel}</span>
-      <span class="agent-score">${decision.strategistAssessment.positionalScore > 0 ? '+' : ''}${decision.strategistAssessment.positionalScore}</span>
+      <span class="agent-eval ${posEval.cssClass}">${posEval.label}</span>
       ${proverbText}
       <span class="agent-reasoning">${decision.strategistAssessment.summary}</span>
     `)
