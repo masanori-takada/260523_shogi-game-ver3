@@ -170,7 +170,7 @@ export class CouncilPanel {
 
     // 総大将: モードバッジのみ
     const modeInfo = MODE_DISPLAY[decision.aiMode]
-    const fallbackMark = decision.isFallback ? ' ⚡' : ''
+    const fallbackMark = decision.isFallback ? ' ⚡Minimax' : ' 🤖LLM'
     this._updateAgent('council-commander', `
       <span class="mode-badge-large ${modeInfo.cssClass}">${modeInfo.label}${fallbackMark}</span>
     `)

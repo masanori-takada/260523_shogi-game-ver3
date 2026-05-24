@@ -1,10 +1,9 @@
 // ============================================================
-// Strands 総大将オーケストレーター
-// Phase1: 3サブエージェント並列 LLM → Phase2: 総大将 LLM 裁定
+// 総大将オーケストレーター — Gemini fetch 直叩き
+// Phase1: 3サブ並列 LLM → Phase2: 総大将 LLM 裁定
 // ⚠️ APIキーはブラウザに露出します（個人利用専用）
 // ============================================================
 
-import { Agent } from '@strands-agents/sdk'
 import type { GameState, Move } from '../../../types/index.js'
 import type { PlayerSide } from '../../../types/index.js'
 import { gameStateToPromptContext, moveToText } from '../board-text.js'
@@ -16,7 +15,7 @@ import {
   type SubAgentProposal,
   type StrategistAssessment,
 } from '../types.js'
-import { createGoogleModel } from './gemini-model.js'
+import { geminiFetchJson } from './gemini-fetch.js'
 import { formatLegalMoves } from './legal-moves-text.js'
 import {
   getLegalMovesForState,
@@ -27,18 +26,16 @@ import {
 import { commanderOutputSchema, type CommanderOutput } from './schemas.js'
 
 const COMMANDER_SYSTEM = `あなたは将棋AIの「総大将」です。
-三軍師の提案テキストを読み、以下のルールで最終手を決定してください。
+三軍師の提案を読み、以下のルールで最終手を決定してください。
 
-【意思決定ルール（優先順位順）】
-RULE-1（最優先）: 審判のdangerLevelがDANGER → 智将(defender)の手を採用
-RULE-2（第二優先）: 猛将のmateInが3以下 → 猛将(attacker)の手を採用
-RULE-3（通常）: 形勢スコアと各スコアを比較して判断
+RULE-1: dangerLevel=DANGER → defender
+RULE-2: mateIn≤3 → attacker
+RULE-3: 通常はスコア比較
 
-最終回答は structured output で selectedAgent, appliedRule, explanation を返してください。`
+JSON形式: { selectedAgent, appliedRule, explanation }`
 
 export type StrandsProgressCallback = (update: CouncilProgressUpdate) => void
 
-/** CommanderOutput → CouncilDecision の一部 */
 function mapCommanderOutput(
   output: CommanderOutput,
   attacker: SubAgentProposal,
@@ -70,7 +67,6 @@ function mapCommanderOutput(
   }
 }
 
-/** 三軍師提案を総大将プロンプト用テキストに変換 */
 function formatProposalsForCommander(
   attacker: SubAgentProposal,
   defender: SubAgentProposal,
@@ -85,10 +81,7 @@ function formatProposalsForCommander(
   ].join('\n')
 }
 
-/**
- * Strands 合議実行（最大4 LLM 呼び出し: 三軍師並列 + 総大将1回）
- * タイムアウトは CouncilEngine 側で管理
- */
+/** 合議実行（4 LLM 呼び出し: 三軍師並列 + 総大将） */
 export async function strandsCommanderDeliberate(
   state: GameState,
   side: PlayerSide,
@@ -114,24 +107,13 @@ export async function strandsCommanderDeliberate(
   const partial = { attackerProposal: attacker, defenderProposal: defender, strategistAssessment: strategist }
   onProgress?.({ phase: 'commander', partial })
 
-  const commanderAgent = new Agent({
-    name: 'commander',
-    description: '総大将が三軍師の意見を統合して最終手を決定する',
-    model: createGoogleModel(apiKey),
-    systemPrompt: COMMANDER_SYSTEM,
-    structuredOutputSchema: commanderOutputSchema,
-    printer: false,
-  })
-
   const proposalText = formatProposalsForCommander(attacker, defender, strategist)
-  const result = await commanderAgent.invoke(
-    `${context}\n\n${legalText}\n\n${proposalText}\n\n上記の三軍師意見に基づき最終手を決定してください。`,
+  const output = await geminiFetchJson(
+    apiKey,
+    COMMANDER_SYSTEM,
+    `${context}\n\n${legalText}\n\n${proposalText}\n\n上記に基づき最終手を決定してください。`,
+    commanderOutputSchema,
   )
-
-  const output = result.structuredOutput as CommanderOutput | undefined
-  if (!output) {
-    throw new Error('Commander agent: no structured output')
-  }
 
   const commanderPart = mapCommanderOutput(output, attacker, defender, strategist)
 

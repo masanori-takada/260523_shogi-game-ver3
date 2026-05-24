@@ -1,14 +1,13 @@
 // ============================================================
-// Strands サブエージェント（猛将・智将・審判）生成・実行
+// LLM サブエージェント（猛将・智将・審判）— Gemini fetch 直叩き
 // ============================================================
 
-import { Agent } from '@strands-agents/sdk'
 import type { GameState, Move } from '../../../types/index.js'
 import type { PlayerSide } from '../../../types/index.js'
 import { GameEngine } from '../../../core/game.js'
 import { gameStateToPromptContext } from '../board-text.js'
 import { AgentRole, type SubAgentProposal, type StrategistAssessment } from '../types.js'
-import { createGoogleModel } from './gemini-model.js'
+import { geminiFetchJson } from './gemini-fetch.js'
 import { formatLegalMoves } from './legal-moves-text.js'
 import { resolveSubAgentMove } from './move-from-llm.js'
 import {
@@ -19,50 +18,14 @@ import {
 } from './schemas.js'
 
 const ATTACKER_SYSTEM = `あなたは将棋AI「猛将（攻め担当）」です。
-攻撃・駒得・詰みを最優先に、合法手リストから最善手を1つ選んでください。`
+攻撃・駒得・詰みを最優先に、合法手リストから最善手を1つ選んでください。
+JSON形式: { moveIndex, score, reasoning, mateIn? }`
 const DEFENDER_SYSTEM = `あなたは将棋AI「智将（守り担当）」です。
-自玉の安全・守りの厚みを最優先に、合法手リストから最善手を1つ選んでください。`
+自玉の安全・守りの厚みを最優先に、合法手リストから最善手を1つ選んでください。
+JSON形式: { moveIndex, score, reasoning }`
 const STRATEGIST_SYSTEM = `あなたは将棋AI「審判（形勢判断）」です。
-盤面の形勢・自玉の危険度を評価してください。dangerLevel: SAFE/CAUTION/DANGER`
-
-const SUB_AGENT_INVOKE_PROMPT = '合法手リストから最善手を1つ選んでください。'
-const STRATEGIST_INVOKE_PROMPT = '盤面の形勢と危険度を評価してください。'
-
-/** 猛将 Strands Agent を生成 */
-export function createAttackerAgent(apiKey: string, context: string, legalText: string): Agent {
-  return new Agent({
-    name: 'get_attacker_proposal',
-    description: '猛将（攻め担当）が候補手・評価・理由を提案する',
-    model: createGoogleModel(apiKey),
-    systemPrompt: `${ATTACKER_SYSTEM}\n\n${context}\n\n${legalText}`,
-    structuredOutputSchema: subAgentOutputSchema,
-    printer: false,
-  })
-}
-
-/** 智将 Strands Agent を生成 */
-export function createDefenderAgent(apiKey: string, context: string, legalText: string): Agent {
-  return new Agent({
-    name: 'get_defender_proposal',
-    description: '智将（守り担当）が候補手・評価・理由を提案する',
-    model: createGoogleModel(apiKey),
-    systemPrompt: `${DEFENDER_SYSTEM}\n\n${context}\n\n${legalText}`,
-    structuredOutputSchema: subAgentOutputSchema,
-    printer: false,
-  })
-}
-
-/** 審判 Strands Agent を生成 */
-export function createStrategistAgent(apiKey: string, context: string, legalText: string): Agent {
-  return new Agent({
-    name: 'get_strategist_assessment',
-    description: '審判（形勢判断）が危険度・形勢・格言違反を評価する',
-    model: createGoogleModel(apiKey),
-    systemPrompt: `${STRATEGIST_SYSTEM}\n\n${context}\n\n${legalText}`,
-    structuredOutputSchema: strategistOutputSchema,
-    printer: false,
-  })
-}
+盤面の形勢・自玉の危険度を評価してください。dangerLevel: SAFE/CAUTION/DANGER
+JSON形式: { dangerLevel, positionalScore, proverbViolations, summary }`
 
 function toSubAgentProposal(
   output: SubAgentOutput,
@@ -88,7 +51,11 @@ function toStrategistAssessment(output: StrategistOutput): StrategistAssessment 
   }
 }
 
-/** 猛将 Agent を LLM 実行 */
+function buildSubPrompt(context: string, legalText: string): string {
+  return `${context}\n\n${legalText}\n\n合法手リストから最善手を1つ選んでください。`
+}
+
+/** 猛将 LLM 実行 */
 export async function invokeAttackerAgent(
   apiKey: string,
   state: GameState,
@@ -97,14 +64,16 @@ export async function invokeAttackerAgent(
 ): Promise<SubAgentProposal> {
   const context = gameStateToPromptContext(state, side)
   const legalText = formatLegalMoves(legalMoves)
-  const agent = createAttackerAgent(apiKey, context, legalText)
-  const result = await agent.invoke(SUB_AGENT_INVOKE_PROMPT)
-  const output = result.structuredOutput as SubAgentOutput | undefined
-  if (!output) throw new Error('Attacker agent: no structured output')
+  const output = await geminiFetchJson(
+    apiKey,
+    ATTACKER_SYSTEM,
+    buildSubPrompt(context, legalText),
+    subAgentOutputSchema,
+  )
   return toSubAgentProposal(output, legalMoves, AgentRole.ATTACKER)
 }
 
-/** 智将 Agent を LLM 実行 */
+/** 智将 LLM 実行 */
 export async function invokeDefenderAgent(
   apiKey: string,
   state: GameState,
@@ -113,14 +82,16 @@ export async function invokeDefenderAgent(
 ): Promise<SubAgentProposal> {
   const context = gameStateToPromptContext(state, side)
   const legalText = formatLegalMoves(legalMoves)
-  const agent = createDefenderAgent(apiKey, context, legalText)
-  const result = await agent.invoke(SUB_AGENT_INVOKE_PROMPT)
-  const output = result.structuredOutput as SubAgentOutput | undefined
-  if (!output) throw new Error('Defender agent: no structured output')
+  const output = await geminiFetchJson(
+    apiKey,
+    DEFENDER_SYSTEM,
+    buildSubPrompt(context, legalText),
+    subAgentOutputSchema,
+  )
   return toSubAgentProposal(output, legalMoves, AgentRole.DEFENDER)
 }
 
-/** 審判 Agent を LLM 実行 */
+/** 審判 LLM 実行 */
 export async function invokeStrategistAgent(
   apiKey: string,
   state: GameState,
@@ -129,10 +100,12 @@ export async function invokeStrategistAgent(
 ): Promise<StrategistAssessment> {
   const context = gameStateToPromptContext(state, side)
   const legalText = formatLegalMoves(legalMoves)
-  const agent = createStrategistAgent(apiKey, context, legalText)
-  const result = await agent.invoke(STRATEGIST_INVOKE_PROMPT)
-  const output = result.structuredOutput as StrategistOutput | undefined
-  if (!output) throw new Error('Strategist agent: no structured output')
+  const output = await geminiFetchJson(
+    apiKey,
+    STRATEGIST_SYSTEM,
+    `${context}\n\n${legalText}\n\n盤面の形勢と危険度を評価してください。`,
+    strategistOutputSchema,
+  )
   return toStrategistAssessment(output)
 }
 

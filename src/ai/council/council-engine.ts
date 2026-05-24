@@ -13,8 +13,8 @@ import { applyCommanderRules } from './commander.js'
 import { strandsCommanderDeliberate } from './strands/commander-agent.js'
 import type { CouncilDecision, CouncilProgressUpdate, CouncilSession } from './types.js'
 
-/** LLM 合議タイムアウト（モバイル回線でも完走できるよう5秒） */
-export const COUNCIL_LLM_TIMEOUT_MS = 5_000
+/** LLM 合議タイムアウト（モバイル回線向け8秒） */
+export const COUNCIL_LLM_TIMEOUT_MS = 8_000
 
 /** 探索深度（エージェントAIモード用） */
 const AGENT_SEARCH_DEPTH = 3

@@ -29,15 +29,9 @@ vi.mock('../../../../../src/ai/council/strands/sub-agents.js', () => ({
   invokeStrategistAgent: vi.fn(async () => mockStrategist),
 }))
 
-const mockInvoke = vi.fn()
-vi.mock('@strands-agents/sdk', () => ({
-  Agent: vi.fn().mockImplementation(() => ({
-    invoke: mockInvoke,
-  })),
-}))
-
-vi.mock('../../../../../src/ai/council/strands/gemini-model.js', () => ({
-  createGoogleModel: vi.fn(() => ({})),
+const mockGeminiFetchJson = vi.fn()
+vi.mock('../../../../../src/ai/council/strands/gemini-fetch.js', () => ({
+  geminiFetchJson: (...args: unknown[]) => mockGeminiFetchJson(...args),
 }))
 
 import { strandsCommanderDeliberate } from '../../../../../src/ai/council/strands/commander-agent.js'
@@ -54,16 +48,14 @@ function makeState() {
 
 describe('strandsCommanderDeliberate', () => {
   beforeEach(() => {
-    mockInvoke.mockReset()
+    mockGeminiFetchJson.mockReset()
   })
 
-  it('総大将 structured output を CouncilDecision 形状にマッピングする', async () => {
-    mockInvoke.mockResolvedValue({
-      structuredOutput: {
-        selectedAgent: 'attacker',
-        appliedRule: 'RULE_3',
-        explanation: '猛将の手を採用',
-      },
+  it('総大将 JSON を CouncilDecision 形状にマッピングする', async () => {
+    mockGeminiFetchJson.mockResolvedValue({
+      selectedAgent: 'attacker',
+      appliedRule: 'RULE_3',
+      explanation: '猛将の手を採用',
     })
 
     const decision = await strandsCommanderDeliberate(makeState(), PlayerSide.SENTE, 'test-key')
@@ -76,11 +68,11 @@ describe('strandsCommanderDeliberate', () => {
     expect(decision.ruleExplanation).toBe('猛将の手を採用')
   })
 
-  it('structured output なしは throw', async () => {
-    mockInvoke.mockResolvedValue({ structuredOutput: undefined })
+  it('Gemini fetch 失敗は throw', async () => {
+    mockGeminiFetchJson.mockRejectedValue(new Error('Gemini API 403'))
 
     await expect(
       strandsCommanderDeliberate(makeState(), PlayerSide.SENTE, 'test-key'),
-    ).rejects.toThrow(/no structured output/)
+    ).rejects.toThrow(/403/)
   })
 })
