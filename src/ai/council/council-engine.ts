@@ -13,8 +13,8 @@ import { applyCommanderRules } from './commander.js'
 import { strandsCommanderDeliberate } from './strands/commander-agent.js'
 import type { CouncilDecision, CouncilSession } from './types.js'
 
-/** タイムアウト時間（ミリ秒） */
-const TIMEOUT_MS = 5_000
+/** タイムアウト時間（ミリ秒）— LLM 合議は3秒以内 */
+const TIMEOUT_MS = 3_000
 
 /** 探索深度（エージェントAIモード用） */
 const AGENT_SEARCH_DEPTH = 3
@@ -87,6 +87,8 @@ export class CouncilEngine {
     state: GameState,
     side: PlayerSide,
   ): Promise<CouncilDecision> {
+    const wantedLlm = !!this.apiKey
+
     if (this.apiKey) {
       try {
         const decision = await strandsCommanderDeliberate(state, side, this.apiKey)
@@ -109,7 +111,8 @@ export class CouncilEngine {
       defenderProposal: defender,
       strategistAssessment: strategist,
       ...commanderResult,
-      isFallback: false,
+      // APIキーありで LLM 失敗時は ⚡ 表示（PC/スマホで同じ判定）
+      isFallback: wantedLlm,
     }
   }
 

@@ -1,6 +1,6 @@
 // ============================================================
-// Strands 総大将オーケストレーター（agents-as-tools）
-// 3サブエージェントを並列 LLM 実行後、総大将 Agent が最終裁定
+// Strands 総大将オーケストレーター
+// Phase1: 3サブエージェント並列 LLM → Phase2: 総大将 LLM 裁定
 // ⚠️ APIキーはブラウザに露出します（個人利用専用）
 // ============================================================
 
@@ -18,9 +18,6 @@ import {
 import { createGoogleModel } from './gemini-model.js'
 import { formatLegalMoves } from './legal-moves-text.js'
 import {
-  createAttackerAgent,
-  createDefenderAgent,
-  createStrategistAgent,
   getLegalMovesForState,
   invokeAttackerAgent,
   invokeDefenderAgent,
@@ -28,8 +25,11 @@ import {
 } from './sub-agents.js'
 import { commanderOutputSchema, type CommanderOutput } from './schemas.js'
 
+/** CouncilEngine の全体タイムアウト（3秒）より少し短く */
+export const STRANDS_TIMEOUT_MS = 2_800
+
 const COMMANDER_SYSTEM = `あなたは将棋AIの「総大将」です。
-3つのツール（get_attacker_proposal, get_defender_proposal, get_strategist_assessment）を必ずすべて呼び出してから、以下のルールで最終手を決定してください。
+三軍師の提案テキストを読み、以下のルールで最終手を決定してください。
 
 【意思決定ルール（優先順位順）】
 RULE-1（最優先）: 審判のdangerLevelがDANGER → 智将(defender)の手を採用
@@ -38,7 +38,14 @@ RULE-3（通常）: 形勢スコアと各スコアを比較して判断
 
 最終回答は structured output で selectedAgent, appliedRule, explanation を返してください。`
 
-const STRANDS_TIMEOUT_MS = 4_500
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timeout (${ms}ms)`)), ms),
+    ),
+  ])
+}
 
 /** CommanderOutput → CouncilDecision の一部 */
 function mapCommanderOutput(
@@ -78,20 +85,16 @@ function formatProposalsForCommander(
   defender: SubAgentProposal,
   strategist: StrategistAssessment,
 ): string {
+  const mateInfo = attacker.mateIn !== undefined ? ` mateIn=${attacker.mateIn}` : ''
   return [
-    '【三軍師の意見（参考）】',
-    `猛将: ${moveToText(attacker.move)} score=${attacker.score} ${attacker.reasoning}`,
-    `智将: ${moveToText(defender.move)} score=${defender.score} ${defender.reasoning}`,
-    `審判: ${strategist.dangerLevel} score=${strategist.positionalScore} ${strategist.summary}`,
+    '【三軍師の意見】',
+    `猛将: ${moveToText(attacker.move)} score=${attacker.score}${mateInfo} / ${attacker.reasoning}`,
+    `智将: ${moveToText(defender.move)} score=${defender.score} / ${defender.reasoning}`,
+    `審判: ${strategist.dangerLevel} score=${strategist.positionalScore} / ${strategist.summary}`,
   ].join('\n')
 }
 
-/**
- * Strands agents-as-tools による合議実行
- * Phase1: 3サブエージェント並列 LLM
- * Phase2: 総大将 Agent（3サブを tools として登録 + structured output）
- */
-export async function strandsCommanderDeliberate(
+async function runDeliberation(
   state: GameState,
   side: PlayerSide,
   apiKey: string,
@@ -104,51 +107,52 @@ export async function strandsCommanderDeliberate(
   const context = gameStateToPromptContext(state, side)
   const legalText = formatLegalMoves(legalMoves)
 
-  const abortController = new AbortController()
-  const timer = setTimeout(() => abortController.abort(), STRANDS_TIMEOUT_MS)
+  const [attacker, defender, strategist] = await Promise.all([
+    invokeAttackerAgent(apiKey, state, side, legalMoves),
+    invokeDefenderAgent(apiKey, state, side, legalMoves),
+    invokeStrategistAgent(apiKey, state, side, legalMoves),
+  ])
 
-  try {
-    const [attacker, defender, strategist] = await Promise.all([
-      invokeAttackerAgent(apiKey, state, side, legalMoves),
-      invokeDefenderAgent(apiKey, state, side, legalMoves),
-      invokeStrategistAgent(apiKey, state, side, legalMoves),
-    ])
+  const commanderAgent = new Agent({
+    name: 'commander',
+    description: '総大将が三軍師の意見を統合して最終手を決定する',
+    model: createGoogleModel(apiKey),
+    systemPrompt: COMMANDER_SYSTEM,
+    structuredOutputSchema: commanderOutputSchema,
+    printer: false,
+  })
 
-    const attackerAgent = createAttackerAgent(apiKey, context, legalText)
-    const defenderAgent = createDefenderAgent(apiKey, context, legalText)
-    const strategistAgent = createStrategistAgent(apiKey, context, legalText)
+  const proposalText = formatProposalsForCommander(attacker, defender, strategist)
+  const result = await commanderAgent.invoke(
+    `${context}\n\n${proposalText}\n\n上記の三軍師意見に基づき最終手を決定してください。`,
+  )
 
-    const commanderAgent = new Agent({
-      name: 'commander',
-      description: '総大将が三軍師の意見を統合して最終手を決定する',
-      model: createGoogleModel(apiKey),
-      systemPrompt: COMMANDER_SYSTEM,
-      tools: [attackerAgent, defenderAgent, strategistAgent],
-      structuredOutputSchema: commanderOutputSchema,
-      printer: false,
-      toolExecutor: 'sequential',
-    })
-
-    const proposalText = formatProposalsForCommander(attacker, defender, strategist)
-    const result = await commanderAgent.invoke(
-      `三軍師に諮問し、3つのツールをすべて呼び出した上で最終手を決定してください。\n\n${proposalText}`,
-      { cancelSignal: abortController.signal },
-    )
-
-    const output = result.structuredOutput as CommanderOutput | undefined
-    if (!output) {
-      throw new Error('Commander agent: no structured output')
-    }
-
-    const commanderPart = mapCommanderOutput(output, attacker, defender, strategist)
-
-    return {
-      attackerProposal: attacker,
-      defenderProposal: defender,
-      strategistAssessment: strategist,
-      ...commanderPart,
-    }
-  } finally {
-    clearTimeout(timer)
+  const output = result.structuredOutput as CommanderOutput | undefined
+  if (!output) {
+    throw new Error('Commander agent: no structured output')
   }
+
+  const commanderPart = mapCommanderOutput(output, attacker, defender, strategist)
+
+  return {
+    attackerProposal: attacker,
+    defenderProposal: defender,
+    strategistAssessment: strategist,
+    ...commanderPart,
+  }
+}
+
+/**
+ * Strands 合議実行（最大4 LLM 呼び出し: 三軍師並列 + 総大将1回、2.8秒上限）
+ */
+export function strandsCommanderDeliberate(
+  state: GameState,
+  side: PlayerSide,
+  apiKey: string,
+): Promise<Omit<CouncilDecision, 'isFallback'>> {
+  return withTimeout(
+    runDeliberation(state, side, apiKey),
+    STRANDS_TIMEOUT_MS,
+    'Strands',
+  )
 }

@@ -19,18 +19,14 @@ import {
 } from './schemas.js'
 
 const ATTACKER_SYSTEM = `あなたは将棋AI「猛将（攻め担当）」です。
-攻撃・駒得・詰みを最優先に、合法手リストから最善手を1つ選んでください。
-自玉の安全は二の次でよい。`
+攻撃・駒得・詰みを最優先に、合法手リストから最善手を1つ選んでください。`
 const DEFENDER_SYSTEM = `あなたは将棋AI「智将（守り担当）」です。
 自玉の安全・守りの厚みを最優先に、合法手リストから最善手を1つ選んでください。`
 const STRATEGIST_SYSTEM = `あなたは将棋AI「審判（形勢判断）」です。
-盤面の形勢・自玉の危険度・格言（玉の守りは金銀3枚など）を評価してください。
-dangerLevel: SAFE=安全, CAUTION=注意, DANGER=危険`
+盤面の形勢・自玉の危険度を評価してください。dangerLevel: SAFE/CAUTION/DANGER`
 
-/** サブエージェント用プロンプトを組み立て */
-function buildSubAgentPrompt(context: string, legalText: string): string {
-  return `${context}\n\n${legalText}`
-}
+const SUB_AGENT_INVOKE_PROMPT = '合法手リストから最善手を1つ選んでください。'
+const STRATEGIST_INVOKE_PROMPT = '盤面の形勢と危険度を評価してください。'
 
 /** 猛将 Strands Agent を生成 */
 export function createAttackerAgent(apiKey: string, context: string, legalText: string): Agent {
@@ -102,7 +98,7 @@ export async function invokeAttackerAgent(
   const context = gameStateToPromptContext(state, side)
   const legalText = formatLegalMoves(legalMoves)
   const agent = createAttackerAgent(apiKey, context, legalText)
-  const result = await agent.invoke(buildSubAgentPrompt(context, legalText))
+  const result = await agent.invoke(SUB_AGENT_INVOKE_PROMPT)
   const output = result.structuredOutput as SubAgentOutput | undefined
   if (!output) throw new Error('Attacker agent: no structured output')
   return toSubAgentProposal(output, legalMoves, AgentRole.ATTACKER)
@@ -118,7 +114,7 @@ export async function invokeDefenderAgent(
   const context = gameStateToPromptContext(state, side)
   const legalText = formatLegalMoves(legalMoves)
   const agent = createDefenderAgent(apiKey, context, legalText)
-  const result = await agent.invoke(buildSubAgentPrompt(context, legalText))
+  const result = await agent.invoke(SUB_AGENT_INVOKE_PROMPT)
   const output = result.structuredOutput as SubAgentOutput | undefined
   if (!output) throw new Error('Defender agent: no structured output')
   return toSubAgentProposal(output, legalMoves, AgentRole.DEFENDER)
@@ -134,7 +130,7 @@ export async function invokeStrategistAgent(
   const context = gameStateToPromptContext(state, side)
   const legalText = formatLegalMoves(legalMoves)
   const agent = createStrategistAgent(apiKey, context, legalText)
-  const result = await agent.invoke(buildSubAgentPrompt(context, legalText))
+  const result = await agent.invoke(STRATEGIST_INVOKE_PROMPT)
   const output = result.structuredOutput as StrategistOutput | undefined
   if (!output) throw new Error('Strategist agent: no structured output')
   return toStrategistAssessment(output)

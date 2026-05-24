@@ -14,8 +14,8 @@ export function createGoogleModel(apiKey: string): GoogleModel {
     apiKey,
     modelId: STRANDS_GEMINI_MODEL,
     params: {
-      temperature: 0.4,
-      maxOutputTokens: 512,
+      temperature: 0.3,
+      maxOutputTokens: 200,
     },
   })
 }

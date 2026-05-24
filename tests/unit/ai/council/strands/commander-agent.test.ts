@@ -27,9 +27,6 @@ vi.mock('../../../../../src/ai/council/strands/sub-agents.js', () => ({
   invokeAttackerAgent: vi.fn(async () => mockAttacker),
   invokeDefenderAgent: vi.fn(async () => mockDefender),
   invokeStrategistAgent: vi.fn(async () => mockStrategist),
-  createAttackerAgent: vi.fn(() => ({})),
-  createDefenderAgent: vi.fn(() => ({})),
-  createStrategistAgent: vi.fn(() => ({})),
 }))
 
 const mockInvoke = vi.fn()
