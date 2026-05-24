@@ -1,0 +1,114 @@
+- generic [ref=e15]:
+  - generic [ref=e16]:
+    - generic [ref=e17]: 先手の番
+    - button "投了" [ref=e18] [cursor=pointer]
+  - generic [ref=e19]:
+    - generic [ref=e21]: 後手持ち駒
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]: "1"
+        - generic [ref=e25]: "2"
+        - generic [ref=e26]: "3"
+        - generic [ref=e27]: "4"
+        - generic [ref=e28]: "5"
+        - generic [ref=e29]: "6"
+        - generic [ref=e30]: "7"
+        - generic [ref=e31]: "8"
+        - generic [ref=e32]: "9"
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - generic [ref=e35]: "1"
+          - generic [ref=e36] [cursor=pointer]:
+            - generic: 香
+          - generic [ref=e37] [cursor=pointer]:
+            - generic: 桂
+          - generic [ref=e38] [cursor=pointer]:
+            - generic: 銀
+          - generic [ref=e39] [cursor=pointer]:
+            - generic: 金
+          - generic [ref=e40] [cursor=pointer]:
+            - generic: 玉
+          - generic [ref=e41] [cursor=pointer]:
+            - generic: 金
+          - generic [ref=e42] [cursor=pointer]:
+            - generic: 銀
+          - generic [ref=e43] [cursor=pointer]:
+            - generic: 桂
+          - generic [ref=e44] [cursor=pointer]:
+            - generic: 香
+        - generic [ref=e45]:
+          - generic [ref=e46]: "2"
+          - generic [ref=e48] [cursor=pointer]:
+            - generic: 角
+          - generic [ref=e54] [cursor=pointer]:
+            - generic: 飛
+        - generic [ref=e56]:
+          - generic [ref=e57]: "3"
+          - generic [ref=e58] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e59] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e60] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e61] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e62] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e63] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e64] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e65] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e66] [cursor=pointer]:
+            - generic: 歩
+        - generic [ref=e68]: "4"
+        - generic [ref=e79]: "5"
+        - generic [ref=e90]: "6"
+        - generic [ref=e100]:
+          - generic [ref=e101]: "7"
+          - generic [ref=e102] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e103] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e104] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e105] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e106] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e107] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e108] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e109] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e110] [cursor=pointer]:
+            - generic: 歩
+        - generic [ref=e111]:
+          - generic [ref=e112]: "8"
+          - generic [ref=e114] [cursor=pointer]:
+            - generic: 飛
+          - generic [ref=e120] [cursor=pointer]:
+            - generic: 角
+        - generic [ref=e122]:
+          - generic [ref=e123]: "9"
+          - generic [ref=e124] [cursor=pointer]:
+            - generic: 香
+          - generic [ref=e125] [cursor=pointer]:
+            - generic: 桂
+          - generic [ref=e126] [cursor=pointer]:
+            - generic: 銀
+          - generic [ref=e127] [cursor=pointer]:
+            - generic: 金
+          - generic [ref=e128] [cursor=pointer]:
+            - generic: 玉
+          - generic [ref=e129] [cursor=pointer]:
+            - generic: 金
+          - generic [ref=e130] [cursor=pointer]:
+            - generic: 銀
+          - generic [ref=e131] [cursor=pointer]:
+            - generic: 桂
+          - generic [ref=e132] [cursor=pointer]:
+            - generic: 香
+    - generic [ref=e134]: 先手持ち駒
