@@ -556,4 +556,89 @@ body {
     padding: 12px 20px;
     font-size: 1rem;
   }
+
+  /* ----------------------------------------
+     エージェントAI: モバイルレイアウト調整
+     ---------------------------------------- */
+
+  /* ゲームレイアウトを縦積みに戻す */
+  .game-screen--agent .game-layout {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* 審議パネルコンテナを全幅に */
+  .council-panel-container {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* パネル内部を横4列に */
+  .council-panel {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+    padding: 5px 4px;
+    align-items: stretch;
+  }
+
+  /* タイトル行を非表示 */
+  .council-title { display: none; }
+
+  /* 各カードを均等幅に */
+  .council-agent,
+  .council-commander {
+    flex: 1;
+    margin-bottom: 0;
+    padding: 5px 3px;
+    min-width: 0;
+  }
+
+  /* カードヘッダーを縦積み中央揃え */
+  .agent-header {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    margin-bottom: 3px;
+  }
+
+  .agent-icon { font-size: 0.85rem; }
+  .agent-name { font-size: 0.6rem; }
+
+  /* カード本文を中央揃え・小さく */
+  .agent-body {
+    text-align: center;
+    font-size: 0.65rem;
+  }
+
+  /* スコア（数字）・評価文（文章）を非表示 */
+  .agent-score,
+  .agent-reasoning,
+  .proverb-violation,
+  .proverb-ok,
+  .rule-applied,
+  .rule-explanation,
+  .fallback-notice,
+  .agent-mate {
+    display: none !important;
+  }
+
+  /* 手の表記を小さく */
+  .agent-move,
+  .final-move { font-size: 0.65rem; }
+
+  /* 総大将バッジを小さく */
+  .mode-badge-large {
+    font-size: 0.6rem;
+    padding: 2px 4px;
+    margin-bottom: 1px;
+  }
+
+  /* 危険度バッジを小さく */
+  .danger-level {
+    font-size: 0.65rem;
+    padding: 1px 3px;
+  }
 }
