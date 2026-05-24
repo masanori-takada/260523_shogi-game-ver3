@@ -567,11 +567,12 @@ body {
     align-items: center;
   }
 
-  /* 審議パネルコンテナを全幅に */
+  /* 審議パネルコンテナ: 全幅 + order:-1 でゲームレイアウト先頭（ヘッダー直下）へ */
   .council-panel-container {
     min-width: 0;
     max-width: 100%;
     width: 100%;
+    order: -1;
   }
 
   /* パネル内部を横4列に */

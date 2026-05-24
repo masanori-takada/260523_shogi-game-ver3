@@ -8,6 +8,7 @@ import { PlayerSide } from '../../types/index.js'
 import {
   CommanderRule,
   RULE_TO_MODE,
+  type AIMode,
   type SubAgentProposal,
   type StrategistAssessment,
   type CouncilDecision,
@@ -48,27 +49,52 @@ export function applyCommanderRules(
     }
   }
 
-  // RULE-3: 通常局面 → 形勢スコアで重み付け
+  // RULE-3: 通常局面 → 形勢スコアで重み付け（採用した手でaiModeを動的決定）
   const score = strategist.positionalScore
   let selectedMove = attacker.move
+  let aiMode: AIMode = 'BALANCE'
   let weightDescription = ''
 
   if (score > 200) {
-    selectedMove = attacker.score >= defender.score * 0.5 ? attacker.move : defender.move
-    weightDescription = '形勢有利のため攻め寄り（猛将優先）'
+    // 有利局面：猛将スコアが一定以上なら攻め、でなければ智将
+    if (attacker.score >= defender.score * 0.5) {
+      selectedMove = attacker.move
+      aiMode = 'ATTACK'
+      weightDescription = '形勢有利・猛将手を採用'
+    } else {
+      selectedMove = defender.move
+      aiMode = 'DEFENSE'
+      weightDescription = '形勢有利・智将手を採用'
+    }
   } else if (score < -200) {
+    // 不利局面：必ず智将
     selectedMove = defender.move
-    weightDescription = '形勢不利のため守り寄り（智将優先）'
+    aiMode = 'DEFENSE'
+    weightDescription = '形勢不利・智将手を採用'
   } else {
-    selectedMove = attacker.score >= defender.score ? attacker.move : defender.move
-    weightDescription = '形勢互角のため均等判断'
+    // 互角：スコアが高い方を採用
+    if (attacker.score > defender.score) {
+      selectedMove = attacker.move
+      aiMode = 'ATTACK'
+      weightDescription = '形勢互角・猛将スコア優位'
+    } else if (defender.score > attacker.score) {
+      selectedMove = defender.move
+      aiMode = 'DEFENSE'
+      weightDescription = '形勢互角・智将スコア優位'
+    } else {
+      selectedMove = attacker.move
+      aiMode = 'BALANCE'
+      weightDescription = '形勢互角・スコア同点'
+    }
   }
+
+  const icon = aiMode === 'ATTACK' ? '🗡️' : aiMode === 'DEFENSE' ? '🛡️' : '⚖️'
 
   return {
     commanderRule: CommanderRule.RULE_3_WEIGHTED,
-    aiMode: RULE_TO_MODE[CommanderRule.RULE_3_WEIGHTED],
+    aiMode,
     finalMove: selectedMove,
-    ruleExplanation: `⚖️ ${weightDescription}`,
+    ruleExplanation: `${icon} ${weightDescription}`,
   }
 }
 
@@ -159,9 +185,14 @@ RULE-3【重み付け統合】: 上記以外 → 形勢スコアで判断（+200
           ? CommanderRule.RULE_2_CHECKMATE_FIRST
           : CommanderRule.RULE_3_WEIGHTED
 
+      // RULE_3は採用した役割でaiModeを決定（常にBALANCEにならないように）
+      const aiMode: AIMode = rule === CommanderRule.RULE_3_WEIGHTED
+        ? (parsed.selectedRole === 'ATTACKER' ? 'ATTACK' : 'DEFENSE')
+        : RULE_TO_MODE[rule]
+
       return {
         commanderRule: rule,
-        aiMode: RULE_TO_MODE[rule],
+        aiMode,
         finalMove: parsed.selectedRole === 'ATTACKER' ? attacker.move : defender.move,
         ruleExplanation: parsed.explanation,
       }

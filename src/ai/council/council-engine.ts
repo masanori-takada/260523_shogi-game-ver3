@@ -104,19 +104,20 @@ export class CouncilEngine {
   private _fallbackDecision(state: GameState, side: PlayerSide): CouncilDecision {
     const move = findBestMove(state, side, Difficulty.ADVANCED)
 
-    // フォールバック時も一応3サブエージェントのデータを揃える
+    // フォールバック時も3サブエージェントのデータを揃え、ルール判定でaiModeを決定
     const attacker = attackerPropose(state, side, 2)
     const defender = defenderPropose(state, side, 2)
     const strategist = strategistAssess(state, side)
+    const commanderResult = applyCommanderRules(attacker, defender, strategist, state)
 
     const fallbackDecision: CouncilDecision = {
       attackerProposal: attacker,
       defenderProposal: defender,
       strategistAssessment: strategist,
-      commanderRule: CommanderRule.RULE_3_WEIGHTED,
-      aiMode: RULE_TO_MODE[CommanderRule.RULE_3_WEIGHTED],
+      commanderRule: commanderResult.commanderRule,
+      aiMode: commanderResult.aiMode,
       finalMove: move,
-      ruleExplanation: '⚡ フォールバック中（Minimaxで応手）',
+      ruleExplanation: commanderResult.ruleExplanation + ' ⚡',
       isFallback: true,
     }
 

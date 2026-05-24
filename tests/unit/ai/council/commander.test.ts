@@ -93,7 +93,7 @@ describe('applyCommanderRules（総大将の意思決定ルール）', () => {
   })
 
   describe('RULE-3: 通常局面は重み付け統合', () => {
-    it('SAFE かつ 詰みなし → RULE_3 を返す', () => {
+    it('互角局面・猛将スコア優位 → RULE_3/ATTACK を返す', () => {
       const state = engine.startGame(makeConfig())
       const attackerMove = makeDummyMove()
       const defenderMove = { kind: 'BOARD' as const, from: { row: 6, col: 3 }, to: { row: 5, col: 3 }, promote: false }
@@ -110,7 +110,47 @@ describe('applyCommanderRules（総大将の意思決定ルール）', () => {
       const result = applyCommanderRules(attacker, defender, strategist, state)
 
       expect(result.commanderRule).toBe(CommanderRule.RULE_3_WEIGHTED)
-      expect(result.aiMode).toBe('BALANCE')
+      expect(result.aiMode).toBe('ATTACK') // 猛将(300) > 智将(200) → ATTACK
+    })
+
+    it('互角局面・スコア同点 → RULE_3/BALANCE を返す', () => {
+      const state = engine.startGame(makeConfig())
+      const attackerMove = makeDummyMove()
+      const defenderMove = { kind: 'BOARD' as const, from: { row: 6, col: 3 }, to: { row: 5, col: 3 }, promote: false }
+
+      const attacker: SubAgentProposal = { move: attackerMove, score: 200, role: AgentRole.ATTACKER, reasoning: '攻め' }
+      const defender: SubAgentProposal = { move: defenderMove, score: 200, role: AgentRole.DEFENDER, reasoning: '守り' }
+      const strategist: StrategistAssessment = {
+        dangerLevel: 'SAFE',
+        positionalScore: 0,
+        proverbViolations: [],
+        summary: '互角',
+      }
+
+      const result = applyCommanderRules(attacker, defender, strategist, state)
+
+      expect(result.commanderRule).toBe(CommanderRule.RULE_3_WEIGHTED)
+      expect(result.aiMode).toBe('BALANCE') // 同点のときのみ BALANCE
+    })
+
+    it('互角局面・智将スコア優位 → RULE_3/DEFENSE を返す', () => {
+      const state = engine.startGame(makeConfig())
+      const attackerMove = makeDummyMove()
+      const defenderMove = { kind: 'BOARD' as const, from: { row: 6, col: 3 }, to: { row: 5, col: 3 }, promote: false }
+
+      const attacker: SubAgentProposal = { move: attackerMove, score: 100, role: AgentRole.ATTACKER, reasoning: '攻め' }
+      const defender: SubAgentProposal = { move: defenderMove, score: 300, role: AgentRole.DEFENDER, reasoning: '守り' }
+      const strategist: StrategistAssessment = {
+        dangerLevel: 'SAFE',
+        positionalScore: 50,
+        proverbViolations: [],
+        summary: '互角',
+      }
+
+      const result = applyCommanderRules(attacker, defender, strategist, state)
+
+      expect(result.commanderRule).toBe(CommanderRule.RULE_3_WEIGHTED)
+      expect(result.aiMode).toBe('DEFENSE') // 智将(300) > 猛将(100) → DEFENSE
     })
   })
 
@@ -163,14 +203,14 @@ describe('applyCommanderRules（総大将の意思決定ルール）', () => {
       expect(result.commanderRule).toBe(CommanderRule.RULE_2_CHECKMATE_FIRST)
     })
 
-    it('RULE-3 適用時（均衡）：ruleExplanation が「⚖️」から始まり BALANCE モード', () => {
+    it('RULE-3 適用時（スコア同点）：ruleExplanation が「⚖️」から始まり BALANCE モード', () => {
       const state = engine.startGame(makeConfig())
-      const attacker: SubAgentProposal = { move: makeDummyMove(), score: 300, role: AgentRole.ATTACKER, reasoning: '攻め' }
+      const attacker: SubAgentProposal = { move: makeDummyMove(), score: 200, role: AgentRole.ATTACKER, reasoning: '攻め' }
       const defenderMove = { kind: 'BOARD' as const, from: { row: 6, col: 3 }, to: { row: 5, col: 3 }, promote: false }
       const defender: SubAgentProposal = { move: defenderMove, score: 200, role: AgentRole.DEFENDER, reasoning: '守り' }
       const strategist: StrategistAssessment = {
         dangerLevel: 'SAFE',
-        positionalScore: 0, // 均衡
+        positionalScore: 0, // 均衡 かつ スコア同点
         proverbViolations: [],
         summary: '互角',
       }
@@ -182,7 +222,7 @@ describe('applyCommanderRules（総大将の意思決定ルール）', () => {
       expect(result.commanderRule).toBe(CommanderRule.RULE_3_WEIGHTED)
     })
 
-    it('RULE-3 適用時（有利）：形勢有利テキストを含む', () => {
+    it('RULE-3 適用時（形勢有利・猛将優位）：ATTACK モードで有利テキストを含む', () => {
       const state = engine.startGame(makeConfig())
       const attacker: SubAgentProposal = { move: makeDummyMove(), score: 600, role: AgentRole.ATTACKER, reasoning: '攻め有利' }
       const defenderMove = { kind: 'BOARD' as const, from: { row: 6, col: 3 }, to: { row: 5, col: 3 }, promote: false }
@@ -196,7 +236,7 @@ describe('applyCommanderRules（総大将の意思決定ルール）', () => {
 
       const result = applyCommanderRules(attacker, defender, strategist, state)
 
-      expect(result.aiMode).toBe('BALANCE' as AIMode)
+      expect(result.aiMode).toBe('ATTACK' as AIMode) // 有利かつ猛将スコア優位 → ATTACK
       expect(result.ruleExplanation).toMatch(/有利/)
     })
   })
