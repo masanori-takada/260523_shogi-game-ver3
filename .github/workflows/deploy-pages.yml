@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [001-shogi-game, 002-council-ai-agents, master]
+    branches: [001-shogi-game, 002-council-ai-agents, master, main]
   workflow_dispatch:
 
 permissions:
