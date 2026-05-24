@@ -172,6 +172,16 @@ body {
   background: rgba(255, 215, 0, 0.2);
 }
 
+/* 直前の指し手：移動元（薄い青） */
+.board-cell.last-move-from {
+  background: rgba(100, 180, 255, 0.35);
+}
+
+/* 直前の指し手：移動先（濃い青） */
+.board-cell.last-move-to {
+  background: rgba(60, 140, 255, 0.55);
+}
+
 .board-cell.selected {
   background: rgba(255, 165, 0, 0.5);
 }

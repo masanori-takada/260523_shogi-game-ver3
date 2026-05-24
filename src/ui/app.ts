@@ -142,12 +142,16 @@ function showGameScreen(root: HTMLElement, config: GameConfig): void {
   const controller = new UIController((uiState: UIState) => {
     const gs = uiState.gameState
 
-    // 盤面更新
+    // 盤面更新（直前の指し手をハイライト）
+    const lastMove = gs.moveHistory.length > 0
+      ? gs.moveHistory[gs.moveHistory.length - 1]!.move
+      : undefined
     boardView.update(
       gs.board,
       uiState.selectedSquare,
       uiState.highlightedSquares,
       gs.status === GameStatus.CHECK,
+      lastMove,
     )
     boardView.setThinking(uiState.isThinking)
 

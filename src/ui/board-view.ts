@@ -1,6 +1,7 @@
 import {
   type Board,
   type Square,
+  type Move,
   type Piece,
   PieceType,
   PlayerSide,
@@ -89,7 +90,12 @@ export class BoardView {
     selectedSquare: Square | null,
     highlightedSquares: Square[],
     isCheck: boolean,
+    lastMove?: Move,
   ): void {
+    // 直前の指し手の from / to を抽出
+    const lastFrom = lastMove?.kind === 'BOARD' ? lastMove.from : null
+    const lastTo   = lastMove ? lastMove.to : null
+
     for (let row = 0; row < 9; row++) {
       for (let col = 0; col < 9; col++) {
         const cell = this.cells[row]![col]!
@@ -103,6 +109,14 @@ export class BoardView {
         if (piece) {
           const pieceElem = createPieceElement(piece)
           cell.appendChild(pieceElem)
+        }
+
+        // 直前の指し手ハイライト（選択より先に適用）
+        if (lastFrom && squareEquals(lastFrom, { row, col })) {
+          cell.classList.add('last-move-from')
+        }
+        if (lastTo && squareEquals(lastTo, { row, col })) {
+          cell.classList.add('last-move-to')
         }
 
         // 選択マスのハイライト
