@@ -60,12 +60,6 @@ function showModeSelectScreen(root: HTMLElement): void {
 // ------------------------------------------------------------
 
 function showDifficultySelectScreen(root: HTMLElement): void {
-  // APIキー未設定時の注釈
-  const apiKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_ANTHROPIC_API_KEY) as string | undefined
-  const agentNote = apiKey
-    ? ''
-    : '<span class="agent-note">⚡ APIキー未設定（Minimaxで動作）</span>'
-
   root.innerHTML = `
     <div class="difficulty-select">
       <h2>難易度を選択</h2>
@@ -74,7 +68,6 @@ function showDifficultySelectScreen(root: HTMLElement): void {
         <button class="difficulty-btn" id="btn-advanced">上級</button>
         <button class="difficulty-btn difficulty-btn--agent" id="btn-agent-ai">
           🤖 エージェントAI
-          ${agentNote}
         </button>
       </div>
       <button class="back-btn" id="btn-back">戻る</button>

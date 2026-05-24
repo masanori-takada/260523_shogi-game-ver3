@@ -312,7 +312,7 @@ export class UIController {
 
     try {
       // 環境変数からAPIキーを取得（Viteが注入）
-      const apiKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_ANTHROPIC_API_KEY) as string | undefined
+      const apiKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) as string | undefined
 
       const decision = await this.councilEngine.deliberate(gs, gs.currentTurn, apiKey)
 

@@ -1,9 +1,9 @@
 // ============================================================
 // 総大将（意思決定エージェント）
-// Strands Agent + 3ツール（猛将・智将・審判）による合議制
+// Gemini API で三軍師の意見を統合し最善手を決定する
 // ============================================================
 
-import type { GameState } from '../../types/index.js'
+import type { GameState, Move } from '../../types/index.js'
 import { PlayerSide } from '../../types/index.js'
 import {
   CommanderRule,
@@ -20,11 +20,6 @@ import {
 /**
  * 総大将の意思決定ルールを適用して CouncilDecision を返す
  * 優先順位: RULE-1（DANGER）> RULE-2（詰み）> RULE-3（通常）
- *
- * @param attacker    猛将の提案
- * @param defender    智将の提案
- * @param strategist  審判の評価
- * @param _state      局面（将来の拡張用）
  */
 export function applyCommanderRules(
   attacker: SubAgentProposal,
@@ -59,15 +54,12 @@ export function applyCommanderRules(
   let weightDescription = ''
 
   if (score > 200) {
-    // 自分有利：攻め寄り（猛将7:智将3）
     selectedMove = attacker.score >= defender.score * 0.5 ? attacker.move : defender.move
     weightDescription = '形勢有利のため攻め寄り（猛将優先）'
   } else if (score < -200) {
-    // 相手有利：守り寄り（猛将3:智将7）
     selectedMove = defender.move
     weightDescription = '形勢不利のため守り寄り（智将優先）'
   } else {
-    // 均衡：均等（猛将5:智将5）→ スコアが高い方
     selectedMove = attacker.score >= defender.score ? attacker.move : defender.move
     weightDescription = '形勢互角のため均等判断'
   }
@@ -81,103 +73,80 @@ export function applyCommanderRules(
 }
 
 // ------------------------------------------------------------
-// Strands Agent 統合（APIキーが利用可能な場合）
+// 手の表記ヘルパー
 // ------------------------------------------------------------
 
-/** Strands Agent を使った高度な意思決定（APIキー必要） */
-export async function commanderDecideWithStrands(
+function formatMoveText(move: Move): string {
+  if (move.kind === 'DROP') {
+    return `${move.pieceType}打（${9 - move.to.col}${move.to.row + 1}）`
+  }
+  const promoteStr = move.promote ? '成' : ''
+  return `${9 - move.from.col}${move.from.row + 1}→${9 - move.to.col}${move.to.row + 1}${promoteStr}`
+}
+
+// ------------------------------------------------------------
+// Gemini API 統合
+// ------------------------------------------------------------
+
+/**
+ * Gemini API を使った高度な意思決定
+ * @param attacker   猛将の提案
+ * @param defender   智将の提案
+ * @param strategist 審判の評価
+ * @param state      局面
+ * @param _side      手番（将来の拡張用）
+ * @param apiKey     Gemini APIキー
+ */
+export async function commanderDecideWithGemini(
   attacker: SubAgentProposal,
   defender: SubAgentProposal,
   strategist: StrategistAssessment,
   state: GameState,
-  side: PlayerSide,
+  _side: PlayerSide,
   apiKey: string,
 ): Promise<Omit<CouncilDecision, 'attackerProposal' | 'defenderProposal' | 'strategistAssessment' | 'isFallback'>> {
 
   try {
-    // 動的インポート（ブラウザバンドル最適化のため）
-    const { Agent } = await import('@strands-agents/sdk')
-    const { tool } = await import('@strands-agents/sdk')
-    const { z } = await import('zod')
+    const { GoogleGenerativeAI } = await import('@google/generative-ai')
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
-    // 猛将ツール（既に計算済みの提案を返す）
-    const attackerTool = tool({
-      name: 'get_attacker_proposal',
-      description: '猛将（攻め担当）の候補手を取得する。相手玉への詰みと駒得を最優先で評価済み。',
-      inputSchema: z.object({}),
-      callback: () => JSON.stringify({
-        move: attacker.move,
-        score: attacker.score,
-        reasoning: attacker.reasoning,
-        mateIn: attacker.mateIn,
-      }),
-    })
+    const mateText = attacker.mateIn !== undefined ? `\n- 詰み: ${attacker.mateIn}手` : ''
 
-    // 智将ツール（既に計算済みの提案を返す）
-    const defenderTool = tool({
-      name: 'get_defender_proposal',
-      description: '智将（守り担当）の候補手を取得する。自玉の安全度と詰めろ解除を最優先で評価済み。',
-      inputSchema: z.object({}),
-      callback: () => JSON.stringify({
-        move: defender.move,
-        score: defender.score,
-        reasoning: defender.reasoning,
-      }),
-    })
+    const prompt = `あなたは将棋の「総大将」です。三軍師の意見を踏まえ、意思決定ルールに従って最善手を選んでください。
 
-    // 審判ツール（既に計算済みの評価を返す）
-    const strategistTool = tool({
-      name: 'get_strategist_assessment',
-      description: '審判（形勢判断）の評価を取得する。危険度（SAFE/CAUTION/DANGER）と格言違反を評価済み。',
-      inputSchema: z.object({}),
-      callback: () => JSON.stringify({
-        dangerLevel: strategist.dangerLevel,
-        positionalScore: strategist.positionalScore,
-        proverbViolations: strategist.proverbViolations,
-        summary: strategist.summary,
-      }),
-    })
+## 三軍師の意見
 
-    const COMMANDER_SYSTEM_PROMPT = `あなたは将棋の「総大将」です。
-3つのツール（猛将・智将・審判）を呼び出して部下の意見を聞き、以下のルールで最終手を決定してください。
+**猛将（攻め）の提案:**
+- 手: ${formatMoveText(attacker.move)}
+- スコア: ${attacker.score}
+- 評価: ${attacker.reasoning}${mateText}
+
+**智将（守り）の提案:**
+- 手: ${formatMoveText(defender.move)}
+- スコア: ${defender.score}
+- 評価: ${defender.reasoning}
+
+**審判（形勢）の評価:**
+- 危険度: ${strategist.dangerLevel}
+- 形勢スコア: ${strategist.positionalScore}
+- ${strategist.summary}
 
 ## 意思決定ルール（優先順位順）
 
-RULE-1【危険度優先】:
-  審判（get_strategist_assessment）が "DANGER" を報告した場合
-  → 必ず智将（get_defender_proposal）の手を採用する
+RULE-1【危険度優先】: 審判が "DANGER" → 必ず智将の手を採用
+RULE-2【詰み優先】: 猛将の mateIn が3以下 → 猛将の手を採用（DANGERの場合はRULE-1優先）
+RULE-3【重み付け統合】: 上記以外 → 形勢スコアで判断（+200以上→猛将、-200以下→智将、互角→スコア高い方）
 
-RULE-2【詰み優先】:
-  猛将（get_attacker_proposal）が mateIn: 3 以下を報告した場合
-  → RULE-1より優先して猛将の手を採用する
-  （ただし審判がDANGERの場合はRULE-1を優先）
+## 出力形式
+必ず以下のJSON形式のみで返してください（他のテキスト不要）：
+{"selectedRole":"ATTACKER","appliedRule":"RULE_3","explanation":"形勢互角のため均等判断"}`
 
-RULE-3【重み付け統合】:
-  上記以外 → 形勢スコアに基づいて判断する
-  - 有利（+200以上）：猛将の手
-  - 不利（-200以下）：智将の手
-  - 互角：スコアが高い方の手
+    const result = await model.generateContent(prompt)
+    const text = result.response.text()
 
-## 出力
-必ず以下のJSON形式のみで答えてください（他のテキスト不要）：
-{"selectedRole":"ATTACKER"または"DEFENDER","appliedRule":"RULE_1"または"RULE_2"または"RULE_3","explanation":"30文字以内の日本語説明"}`
-
-    const agent = new Agent({
-      model: {
-        modelId: 'claude-haiku-4-5-20251001',
-        apiKey,
-      } as any,
-      systemPrompt: COMMANDER_SYSTEM_PROMPT,
-      tools: [attackerTool, defenderTool, strategistTool],
-    })
-
-    const result = await agent.invoke('三軍師に諮問し、意思決定ルールに従って最善手を決定せよ。')
-    // Message 型を文字列に変換（Strands SDK は Message オブジェクトを返す場合がある）
-    const rawMsg = (result as any).lastMessage ?? ''
-    const lastMsg: string = typeof rawMsg === 'string' ? rawMsg : JSON.stringify(rawMsg)
-
-    // JSONパース
-    const jsonMatch = lastMsg.match(/\{[^}]+\}/)
+    // JSONを抽出してパース
+    const jsonMatch = text.match(/\{[^}]+\}/)
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]) as {
         selectedRole: 'ATTACKER' | 'DEFENDER'
@@ -198,7 +167,7 @@ RULE-3【重み付け統合】:
       }
     }
   } catch (err) {
-    console.warn('[CouncilEngine] Strands Agent 失敗、ルールベースにフォールバック:', err)
+    console.warn('[CouncilEngine] Gemini API 失敗、ルールベースにフォールバック:', err)
   }
 
   // フォールバック: ルールベース判定

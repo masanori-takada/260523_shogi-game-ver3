@@ -20,7 +20,6 @@
     "vitest": "^1.6.0"
   },
   "dependencies": {
-    "@strands-agents/sdk": "^1.3.0",
-    "zod": "^4.4.3"
+    "@google/generative-ai": "^0.24.1"
   }
 }

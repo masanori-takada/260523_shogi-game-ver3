@@ -9,7 +9,7 @@ import { findBestMove } from '../minimax.js'
 import { attackerPropose } from './attacker.js'
 import { defenderPropose } from './defender.js'
 import { strategistAssess } from './strategist.js'
-import { applyCommanderRules, commanderDecideWithStrands } from './commander.js'
+import { applyCommanderRules, commanderDecideWithGemini } from './commander.js'
 import { CommanderRule, RULE_TO_MODE, type CouncilDecision, type CouncilSession } from './types.js'
 
 /** タイムアウト時間（ミリ秒） */
@@ -77,10 +77,10 @@ export class CouncilEngine {
     let commanderResult: Omit<CouncilDecision, 'attackerProposal' | 'defenderProposal' | 'strategistAssessment' | 'isFallback'>
 
     if (apiKey) {
-      // Strands Agent 経由（LLMが意思決定）
-      commanderResult = await commanderDecideWithStrands(attacker, defender, strategist, state, side, apiKey)
+      // Gemini API 経由（LLMが意思決定）
+      commanderResult = await commanderDecideWithGemini(attacker, defender, strategist, state, side, apiKey)
     } else {
-      // ルールベース（LLMなし）
+      // ルールベース（フォールバック）
       commanderResult = applyCommanderRules(attacker, defender, strategist, state)
     }
 
