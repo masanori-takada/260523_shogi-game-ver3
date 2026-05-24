@@ -10,6 +10,8 @@ import { evaluate } from '../evaluator.js'
 import { findBestMove } from '../minimax.js'
 import { isInCheck } from '../../core/rules.js'
 import { AgentRole, type SubAgentProposal } from './types.js'
+import { generateLLMReasoning } from './llm-reasoning.js'
+import { gameStateToPromptContext, moveToText } from './board-text.js'
 
 const engine = new GameEngine()
 
@@ -127,5 +129,33 @@ export function defenderPropose(
     score: bestScore,
     role: AgentRole.DEFENDER,
     reasoning,
+  }
+}
+
+/**
+ * 智将ハイブリッド版: Minimaxで手を選択し、Geminiでreasoningを生成する
+ * Gemini失敗時はテンプレートreasoningにフォールバック
+ */
+export async function defenderProposeHybrid(
+  state: GameState,
+  side: PlayerSide,
+  depth: number,
+  apiKey: string,
+): Promise<SubAgentProposal> {
+  const base = defenderPropose(state, side, depth)
+
+  try {
+    const boardText = gameStateToPromptContext(state, side)
+    const proposedMoveText = moveToText(base.move)
+    // dangerLevel は呼び出し元では不明なので省略（defenderPropose内部で判定済み）
+    const reasoning = await generateLLMReasoning({
+      persona: 'defender',
+      boardText,
+      proposedMoveText,
+      score: base.score,
+    }, apiKey)
+    return { ...base, reasoning }
+  } catch {
+    return base
   }
 }

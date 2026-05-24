@@ -12,6 +12,8 @@ import {
   type DangerLevel,
   type ProverbViolation,
 } from './types.js'
+import { generateLLMReasoning } from './llm-reasoning.js'
+import { gameStateToPromptContext } from './board-text.js'
 
 /**
  * 玉の位置を探す
@@ -181,5 +183,32 @@ export function strategistAssess(state: GameState, side: PlayerSide): Strategist
     positionalScore,
     proverbViolations,
     summary,
+  }
+}
+
+/**
+ * 審判ハイブリッド版: 格言チェックは既存のまま、summaryのみGeminiで生成する
+ * Gemini失敗時はテンプレートsummaryにフォールバック
+ */
+export async function strategistAssessHybrid(
+  state: GameState,
+  side: PlayerSide,
+  apiKey: string,
+): Promise<StrategistAssessment> {
+  const base = strategistAssess(state, side)
+
+  try {
+    const boardText = gameStateToPromptContext(state, side)
+    const summary = await generateLLMReasoning({
+      persona: 'strategist',
+      boardText,
+      proposedMoveText: '',
+      score: base.positionalScore,
+      dangerLevel: base.dangerLevel,
+      proverbViolations: base.proverbViolations.map(v => v.proverb),
+    }, apiKey)
+    return { ...base, summary }
+  } catch {
+    return base
   }
 }
