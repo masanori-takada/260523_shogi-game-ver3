@@ -106,56 +106,41 @@ export class CouncilPanel {
     this._updateAgent('council-commander', `<span class="agent-thinking">審議中...</span>`)
   }
 
-  /** 審議結果を表示 */
+  /** 審議結果を表示（バッジ・ラベルのみ。手や評価文は表示しない） */
   showDecision(decision: CouncilDecision): void {
-    // 猛将の結果
+    // 猛将: 形勢ラベル（詰みがあればその表示も追加）
     const attackerEval = scoreToLabel(decision.attackerProposal.score)
     const mateText = decision.attackerProposal.mateIn !== undefined
       ? `<span class="agent-mate">🎯 詰み${decision.attackerProposal.mateIn}手！</span>`
       : ''
     this._updateAgent('council-attacker', `
-      <span class="agent-move">${this._formatMove(decision.attackerProposal.move)}</span>
       <span class="agent-eval ${attackerEval.cssClass}">${attackerEval.label}</span>
       ${mateText}
-      <span class="agent-reasoning">${decision.attackerProposal.reasoning}</span>
     `)
 
-    // 智将の結果
+    // 智将: 形勢ラベル
     const defenderEval = scoreToLabel(decision.defenderProposal.score)
     this._updateAgent('council-defender', `
-      <span class="agent-move">${this._formatMove(decision.defenderProposal.move)}</span>
       <span class="agent-eval ${defenderEval.cssClass}">${defenderEval.label}</span>
-      <span class="agent-reasoning">${decision.defenderProposal.reasoning}</span>
     `)
 
-    // 審判の結果
+    // 審判: 危険度バッジ + 形勢ラベル
     const posEval = posScoreToLabel(decision.strategistAssessment.positionalScore)
     const dangerClass = {
       SAFE:    'danger-safe',
       CAUTION: 'danger-caution',
       DANGER:  'danger-high',
     }[decision.strategistAssessment.dangerLevel]
-    const proverbText = decision.strategistAssessment.proverbViolations.length > 0
-      ? `<span class="proverb-violation">⚠️ ${decision.strategistAssessment.proverbViolations[0]!.proverb}</span>`
-      : `<span class="proverb-ok">✅ 格言違反なし</span>`
     this._updateAgent('council-strategist', `
       <span class="danger-level ${dangerClass}">${decision.strategistAssessment.dangerLevel}</span>
       <span class="agent-eval ${posEval.cssClass}">${posEval.label}</span>
-      ${proverbText}
-      <span class="agent-reasoning">${decision.strategistAssessment.summary}</span>
     `)
 
-    // 総大将の裁定
+    // 総大将: モードバッジのみ
     const modeInfo = MODE_DISPLAY[decision.aiMode]
-    const fallbackText = decision.isFallback
-      ? `<span class="fallback-notice">⚡ フォールバック中</span>`
-      : ''
+    const fallbackMark = decision.isFallback ? ' ⚡' : ''
     this._updateAgent('council-commander', `
-      <span class="mode-badge-large ${modeInfo.cssClass}">${modeInfo.label}</span>
-      <span class="rule-applied">${decision.commanderRule}: ${this._ruleLabel(decision.commanderRule)}</span>
-      <span class="final-move">${this._formatMove(decision.finalMove)}</span>
-      <span class="rule-explanation">${decision.ruleExplanation}</span>
-      ${fallbackText}
+      <span class="mode-badge-large ${modeInfo.cssClass}">${modeInfo.label}${fallbackMark}</span>
     `)
   }
 
@@ -168,24 +153,5 @@ export class CouncilPanel {
   private _updateAgent(id: string, bodyHtml: string): void {
     const el = this.container.querySelector(`#${id} .agent-body`)
     if (el) el.innerHTML = bodyHtml
-  }
-
-  /** 手を簡易テキスト表示 */
-  private _formatMove(move: import('../types/index.js').Move): string {
-    if (move.kind === 'DROP') {
-      return `${move.pieceType}打（${9 - move.to.col}${move.to.row + 1}）`
-    }
-    const promoteStr = move.promote ? '成' : ''
-    return `${9 - move.from.col}${move.from.row + 1}→${9 - move.to.col}${move.to.row + 1}${promoteStr}`
-  }
-
-  /** ルール名の日本語ラベル */
-  private _ruleLabel(rule: string): string {
-    const labels: Record<string, string> = {
-      RULE_1: '危険回避',
-      RULE_2: '詰み優先',
-      RULE_3: '重み付け統合',
-    }
-    return labels[rule] ?? rule
   }
 }

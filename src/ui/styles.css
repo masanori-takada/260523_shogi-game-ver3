@@ -8,20 +8,31 @@
   padding: 0;
 }
 
+/* ------------------------------------------------------------
+   CSS カスタムプロパティ（ボードサイズ自動計算）
+   --cell  : vw と vh の両方に基づき、画面に収まるセルサイズ
+   --board-w: 盤面全体の幅（セル×9 + 段ラベル + ボーダー）
+   ------------------------------------------------------------ */
+:root {
+  --cell: clamp(32px, min(5.5vw, calc((100vh - 280px) / 9)), 52px);
+  --board-w: calc(var(--cell) * 9 + 30px);
+}
+
 body {
   font-family: 'Hiragino Kaku Gothic Pro', 'Noto Sans JP', sans-serif;
   background: #2c1810;
   color: #333;
   min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column; /* 縦方向フレックスに変更 */
+  align-items: center;    /* 水平中央揃え */
 }
 
 #app {
   width: 100%;
   max-width: 800px;
   padding: 16px;
+  margin: auto 0; /* 縦スペースがあれば自動で上下マージン → 画面に収まるとき中央揃え */
 }
 
 /* ============================================================
@@ -91,7 +102,7 @@ body {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  max-width: 500px;
+  max-width: var(--board-w);
   padding: 8px 0;
 }
 
@@ -143,7 +154,8 @@ body {
   color: #f5deb3;
   font-size: 0.75rem;
   text-align: center;
-  max-width: 500px;
+  max-width: var(--board-w);
+  width: var(--board-w);
 }
 
 .board-grid {
@@ -165,8 +177,8 @@ body {
 }
 
 .board-cell {
-  width: clamp(36px, 5.5vw, 52px);
-  height: clamp(36px, 5.5vw, 52px);
+  width: var(--cell);
+  height: var(--cell);
   border: 1px solid #8b6914;
   display: flex;
   align-items: center;
@@ -216,7 +228,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(14px, 2vw, 20px);
+  /* セルサイズに比例したフォントサイズ（vw と vh 両方に対応） */
+  font-size: clamp(12px, min(2vw, calc(var(--cell) * 0.4)), 20px);
   font-weight: bold;
   border-radius: 3px;
   clip-path: polygon(50% 0%, 90% 20%, 100% 100%, 0% 100%, 10% 20%);
@@ -239,8 +252,8 @@ body {
    ============================================================ */
 
 .hand-area {
-  width: 100%;
-  max-width: 500px;
+  width: var(--board-w);
+  max-width: 100%;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   padding: 8px 12px;
@@ -674,18 +687,10 @@ body:has(.game-screen--agent) #app {
 }
 
 /* ----------------------------------------
-   ≤480px: 小型スマートフォン向けボードサイズ調整
+   ≤480px: 小型スマートフォン向け調整
+   （ボードサイズはCSSカスタムプロパティが自動処理）
    ---------------------------------------- */
 @media (max-width: 480px) {
-  .board-cell {
-    width: 36px;
-    height: 36px;
-  }
-
-  .piece {
-    font-size: 13px;
-  }
-
   .mode-btn, .difficulty-btn {
     min-width: 130px;
     padding: 12px 20px;
