@@ -9,11 +9,11 @@ import { findBestMove } from '../minimax.js'
 import { attackerPropose } from './attacker.js'
 import { defenderPropose } from './defender.js'
 import { strategistAssess } from './strategist.js'
-import { applyCommanderRules, commanderDecideWithGemini } from './commander.js'
+import { applyCommanderRules } from './commander.js'
 import { CommanderRule, RULE_TO_MODE, type CouncilDecision, type CouncilSession } from './types.js'
 
 /** タイムアウト時間（ミリ秒） */
-const TIMEOUT_MS = 10_000
+const TIMEOUT_MS = 5_000
 
 /** 探索深度（エージェントAIモード用） */
 const AGENT_SEARCH_DEPTH = 3
@@ -32,19 +32,17 @@ export class CouncilEngine {
    * 合議制で最善手を決定する
    * @param state   現在の局面
    * @param side    AIの手番
-   * @param apiKey  Anthropic APIキー（省略可。省略時はルールベースで動作）
    */
   async deliberate(
     state: GameState,
     side: PlayerSide,
-    apiKey?: string,
   ): Promise<CouncilDecision> {
     this.session.isThinking = true
 
     try {
       // タイムアウト付きで審議を実行
       const decision = await Promise.race([
-        this._runCouncil(state, side, apiKey),
+        this._runCouncil(state, side),
         this._timeout(),
       ]) as CouncilDecision
 
@@ -64,7 +62,6 @@ export class CouncilEngine {
   private async _runCouncil(
     state: GameState,
     side: PlayerSide,
-    apiKey?: string,
   ): Promise<CouncilDecision> {
     // 3サブエージェントを並列実行
     const [attacker, defender, strategist] = await Promise.all([
@@ -73,16 +70,8 @@ export class CouncilEngine {
       Promise.resolve(strategistAssess(state, side)),
     ])
 
-    // 総大将の意思決定
-    let commanderResult: Omit<CouncilDecision, 'attackerProposal' | 'defenderProposal' | 'strategistAssessment' | 'isFallback'>
-
-    if (apiKey) {
-      // Gemini API 経由（LLMが意思決定）
-      commanderResult = await commanderDecideWithGemini(attacker, defender, strategist, state, side, apiKey)
-    } else {
-      // ルールベース（フォールバック）
-      commanderResult = applyCommanderRules(attacker, defender, strategist, state)
-    }
+    // 総大将の意思決定（ルールベース）
+    const commanderResult = applyCommanderRules(attacker, defender, strategist, state)
 
     return {
       attackerProposal: attacker,

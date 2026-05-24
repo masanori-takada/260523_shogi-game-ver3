@@ -1,0 +1,6 @@
+- generic [ref=e149]:
+  - heading "難易度を選択" [level=2] [ref=e150]
+  - generic [ref=e151]:
+    - button "初級" [ref=e152] [cursor=pointer]
+    - button "上級" [ref=e153] [cursor=pointer]
+  - button "戻る" [ref=e154] [cursor=pointer]

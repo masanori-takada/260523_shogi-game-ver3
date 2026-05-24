@@ -1,0 +1,9 @@
+- generic [ref=e8]:
+  - heading "難易度を選択" [level=2] [ref=e9]
+  - generic [ref=e10]:
+    - button "初級" [ref=e11] [cursor=pointer]
+    - button "上級" [ref=e12] [cursor=pointer]
+    - button "🤖 エージェントAI ⚡ APIキー未設定（Minimaxで動作）" [ref=e13] [cursor=pointer]:
+      - text: 🤖 エージェントAI
+      - generic [ref=e14]: ⚡ APIキー未設定（Minimaxで動作）
+  - button "戻る" [ref=e15] [cursor=pointer]

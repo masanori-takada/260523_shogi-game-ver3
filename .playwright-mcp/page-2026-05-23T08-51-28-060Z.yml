@@ -1,0 +1,5 @@
+- generic [ref=e144]:
+  - heading "将棋" [level=1] [ref=e145]
+  - generic [ref=e146]:
+    - button "人間対人間" [ref=e147] [cursor=pointer]
+    - button "人間対AI" [ref=e148] [cursor=pointer]

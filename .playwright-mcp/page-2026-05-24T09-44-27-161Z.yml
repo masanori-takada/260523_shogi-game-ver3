@@ -1,0 +1,152 @@
+- generic [ref=e16]:
+  - generic [ref=e17]:
+    - generic [ref=e18]: 先手の番
+    - generic [ref=e19]: ⚖️ 形勢判断モード
+    - button "投了" [ref=e20] [cursor=pointer]
+  - generic [ref=e21]:
+    - generic [ref=e166]: 後手持ち駒
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: "1"
+        - generic [ref=e27]: "2"
+        - generic [ref=e28]: "3"
+        - generic [ref=e29]: "4"
+        - generic [ref=e30]: "5"
+        - generic [ref=e31]: "6"
+        - generic [ref=e32]: "7"
+        - generic [ref=e33]: "8"
+        - generic [ref=e34]: "9"
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - generic [ref=e37]: "1"
+          - generic [ref=e38] [cursor=pointer]:
+            - generic: 香
+          - generic [ref=e39] [cursor=pointer]:
+            - generic: 桂
+          - generic [ref=e40] [cursor=pointer]:
+            - generic: 銀
+          - generic [ref=e41] [cursor=pointer]:
+            - generic: 金
+          - generic [ref=e42] [cursor=pointer]:
+            - generic: 玉
+          - generic [ref=e43] [cursor=pointer]:
+            - generic: 金
+          - generic [ref=e44] [cursor=pointer]:
+            - generic: 銀
+          - generic [ref=e45] [cursor=pointer]:
+            - generic: 桂
+        - generic [ref=e47]:
+          - generic [ref=e48]: "2"
+          - generic [ref=e50] [cursor=pointer]:
+            - generic: 角
+          - generic [ref=e56] [cursor=pointer]:
+            - generic: 飛
+          - generic [ref=e57] [cursor=pointer]:
+            - generic: 香
+        - generic [ref=e58]:
+          - generic [ref=e59]: "3"
+          - generic [ref=e60] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e61] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e62] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e63] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e64] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e65] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e66] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e67] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e68] [cursor=pointer]:
+            - generic: 歩
+        - generic [ref=e70]: "4"
+        - generic [ref=e81]: "5"
+        - generic [ref=e91]:
+          - generic [ref=e92]: "6"
+          - generic [ref=e97] [cursor=pointer]:
+            - generic: 歩
+        - generic [ref=e102]:
+          - generic [ref=e103]: "7"
+          - generic [ref=e104] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e105] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e106] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e107] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e109] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e110] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e111] [cursor=pointer]:
+            - generic: 歩
+          - generic [ref=e112] [cursor=pointer]:
+            - generic: 歩
+        - generic [ref=e113]:
+          - generic [ref=e114]: "8"
+          - generic [ref=e116] [cursor=pointer]:
+            - generic: 飛
+          - generic [ref=e122] [cursor=pointer]:
+            - generic: 角
+        - generic [ref=e124]:
+          - generic [ref=e125]: "9"
+          - generic [ref=e126] [cursor=pointer]:
+            - generic: 香
+          - generic [ref=e127] [cursor=pointer]:
+            - generic: 桂
+          - generic [ref=e128] [cursor=pointer]:
+            - generic: 銀
+          - generic [ref=e129] [cursor=pointer]:
+            - generic: 金
+          - generic [ref=e130] [cursor=pointer]:
+            - generic: 玉
+          - generic [ref=e131] [cursor=pointer]:
+            - generic: 金
+          - generic [ref=e132] [cursor=pointer]:
+            - generic: 銀
+          - generic [ref=e133] [cursor=pointer]:
+            - generic: 桂
+          - generic [ref=e134] [cursor=pointer]:
+            - generic: 香
+    - generic [ref=e167]: 先手持ち駒
+    - generic [ref=e138]:
+      - heading "👑 三軍師の審議" [level=3] [ref=e139]
+      - generic [ref=e140]:
+        - generic [ref=e141]:
+          - generic [ref=e142]: 🗡️
+          - generic [ref=e143]: 猛将（攻め）
+        - generic [ref=e144]:
+          - generic [ref=e168]: 91→92
+          - generic [ref=e169]: "+20"
+          - generic [ref=e170]: 駒得・攻撃重視で評価スコア+20
+      - generic [ref=e146]:
+        - generic [ref=e147]:
+          - generic [ref=e148]: 🛡️
+          - generic [ref=e149]: 智将（守り）
+        - generic [ref=e150]:
+          - generic [ref=e171]: 91→92
+          - generic [ref=e172]: "+240"
+          - generic [ref=e173]: 守り重視で評価スコア+240
+      - generic [ref=e152]:
+        - generic [ref=e153]:
+          - generic [ref=e154]: ⚖️
+          - generic [ref=e155]: 審判（形勢）
+        - generic [ref=e156]:
+          - generic [ref=e174]: SAFE
+          - generic [ref=e175]: "0"
+          - generic [ref=e176]: ✅ 格言違反なし
+          - generic [ref=e177]: ✅ 安全。形勢互角（スコア0）
+      - generic [ref=e158]:
+        - generic [ref=e159]:
+          - generic [ref=e160]: 👑
+          - generic [ref=e161]: 総大将の裁定
+        - generic [ref=e162]:
+          - generic [ref=e178]: ⚖️ 形勢判断モード
+          - generic [ref=e179]: "RULE_3: 重み付け統合"
+          - generic [ref=e180]: 91→92
+          - generic [ref=e181]: ⚖️ 形勢互角のため均等判断
