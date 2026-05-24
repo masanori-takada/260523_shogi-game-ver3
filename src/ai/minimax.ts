@@ -13,8 +13,9 @@ import { evaluate } from './evaluator.js'
 // ------------------------------------------------------------
 
 const DEPTH_BY_DIFFICULTY: Record<Difficulty, number> = {
-  [Difficulty.BEGINNER]: 2,
-  [Difficulty.ADVANCED]: 4,
+  [Difficulty.BEGINNER]:  2,
+  [Difficulty.ADVANCED]:  4,
+  [Difficulty.AGENT_AI]:  4, // エージェントAIはサブエージェント経由で呼ばれるが念のため設定
 }
 
 const engine = new GameEngine()

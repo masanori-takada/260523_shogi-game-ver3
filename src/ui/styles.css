@@ -382,6 +382,162 @@ body {
 }
 
 /* ============================================================
+   エージェントAI: モードバッジ
+   ============================================================ */
+
+.ai-mode-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  margin: 0 8px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* 攻めモード（橙） */
+.mode-attack {
+  background: #e65c00;
+  color: #fff;
+}
+
+/* 守りモード（赤） */
+.mode-defense {
+  background: #cc0000;
+  color: #fff;
+}
+
+/* 形勢判断モード（青） */
+.mode-balance {
+  background: #1a6bb5;
+  color: #fff;
+}
+
+/* 審議中 */
+.mode-thinking {
+  background: #888;
+  color: #fff;
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+/* エージェントAI専用ボタン */
+.difficulty-btn--agent {
+  background: linear-gradient(135deg, #1a6bb5, #e65c00);
+  color: #fff;
+  position: relative;
+}
+
+.agent-note {
+  display: block;
+  font-size: 0.7rem;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   エージェントAI: ゲーム画面レイアウト
+   ============================================================ */
+
+.game-screen--agent #app,
+.game-screen--agent {
+  max-width: 1100px;
+}
+
+.game-screen--agent .game-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.council-panel-container {
+  min-width: 220px;
+  max-width: 260px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   三軍師の審議パネル
+   ============================================================ */
+
+.council-panel {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 0.8rem;
+  border: 1px solid #45475a;
+}
+
+.council-title {
+  font-size: 0.95rem;
+  font-weight: bold;
+  text-align: center;
+  color: #f5c2e7;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #45475a;
+}
+
+.council-agent {
+  background: #313244;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.council-agent.attacker { border-left: 3px solid #e65c00; }
+.council-agent.defender { border-left: 3px solid #cc0000; }
+.council-agent.strategist { border-left: 3px solid #1a6bb5; }
+.council-commander { border-left: 3px solid #f5c2e7; background: #313244; border-radius: 8px; padding: 8px; }
+
+.agent-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.agent-icon { font-size: 1rem; }
+.agent-name { font-size: 0.8rem; color: #bac2de; }
+
+.agent-body {
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: #a6e3a1;
+}
+
+.agent-body span { display: block; }
+.agent-move { color: #89dceb; font-weight: bold; }
+.agent-score { color: #a6e3a1; }
+.agent-mate { color: #fab387; font-weight: bold; }
+.agent-reasoning { color: #cdd6f4; font-size: 0.7rem; }
+.agent-thinking { color: #6c7086; font-style: italic; }
+.agent-status { color: #6c7086; }
+
+.danger-level { font-weight: bold; padding: 1px 6px; border-radius: 4px; display: inline-block !important; }
+.danger-safe    { background: #a6e3a1; color: #1e1e2e; }
+.danger-caution { background: #f9e2af; color: #1e1e2e; }
+.danger-high    { background: #f38ba8; color: #1e1e2e; }
+
+.proverb-violation { color: #f38ba8; font-size: 0.7rem; }
+.proverb-ok { color: #a6e3a1; font-size: 0.7rem; }
+
+.mode-badge-large {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.rule-applied { color: #89b4fa; font-size: 0.7rem; }
+.final-move { color: #cba6f7; font-weight: bold; }
+.rule-explanation { color: #cdd6f4; font-size: 0.72rem; }
+.fallback-notice { color: #fab387; font-size: 0.7rem; }
+
+/* ============================================================
    レスポンシブ
    ============================================================ */
 

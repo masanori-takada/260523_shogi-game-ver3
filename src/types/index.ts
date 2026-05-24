@@ -38,8 +38,9 @@ export enum PlayerType {
 }
 
 export enum Difficulty {
-  BEGINNER = 'BEGINNER', // 初級: 探索深度2
-  ADVANCED = 'ADVANCED', // 上級: 探索深度4
+  BEGINNER  = 'BEGINNER',  // 初級: 探索深度2
+  ADVANCED  = 'ADVANCED',  // 上級: 探索深度4
+  AGENT_AI  = 'AGENT_AI',  // エージェントAI: 三軍師合議制エンジン
 }
 
 export interface Player {
@@ -145,6 +146,7 @@ export interface GameConfig {
 // ------------------------------------------------------------
 // UI状態
 // ------------------------------------------------------------
+// CouncilSession は src/ai/council/types.ts で定義（循環参照回避のため型のみimport）
 export interface UIState {
   gameState: GameState
   selectedSquare: Square | null
@@ -152,6 +154,9 @@ export interface UIState {
   highlightedSquares: Square[]
   isThinking: boolean
   pendingPromotion: { move: BoardMove } | null
+  // エージェントAIモード時のみ設定される合議制セッション情報
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  councilSession?: any // CouncilSession（循環参照回避のため any）
 }
 
 // ------------------------------------------------------------

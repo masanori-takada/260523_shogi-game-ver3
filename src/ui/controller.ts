@@ -12,6 +12,8 @@ import {
 } from '../types/index.js'
 import { GameEngine } from '../core/game.js'
 import { AIEngine } from '../ai/engine.js'
+import { CouncilEngine } from '../ai/council/council-engine.js'
+import { type CouncilSession } from '../ai/council/types.js'
 import { type UIState } from '../types/index.js'
 import { squareEquals } from '../core/board.js'
 
@@ -24,6 +26,7 @@ export type UIUpdateCallback = (state: UIState) => void
 export class UIController {
   private engine: GameEngine
   private aiEngine: AIEngine
+  private councilEngine: CouncilEngine
   private gameState!: GameState
   private config!: GameConfig
   private uiStateInternal: UIState = createEmptyUIState()
@@ -32,6 +35,7 @@ export class UIController {
   constructor(onUpdate: UIUpdateCallback) {
     this.engine = new GameEngine()
     this.aiEngine = new AIEngine()
+    this.councilEngine = new CouncilEngine()
     this.onUpdate = onUpdate
   }
 
@@ -39,6 +43,15 @@ export class UIController {
   startGame(config: GameConfig): void {
     this.config = config
     this.gameState = this.engine.startGame(config)
+
+    // エージェントAIモードの場合は councilSession を初期化
+    const isAgentAI = config.sentePlayer.difficulty === Difficulty.AGENT_AI
+      || config.gotePlayer.difficulty === Difficulty.AGENT_AI
+
+    const initialCouncilSession: CouncilSession | undefined = isAgentAI
+      ? { isThinking: false, decisionHistory: [] }
+      : undefined
+
     this.uiStateInternal = {
       gameState: this.gameState,
       selectedSquare: null,
@@ -46,6 +59,7 @@ export class UIController {
       highlightedSquares: [],
       isThinking: false,
       pendingPromotion: null,
+      councilSession: initialCouncilSession,
     }
     this.notifyUpdate()
 
@@ -258,6 +272,13 @@ export class UIController {
 
     const difficulty = currentPlayer.difficulty ?? Difficulty.BEGINNER
 
+    // エージェントAIモードは合議制エンジンを使用
+    if (difficulty === Difficulty.AGENT_AI) {
+      await this.maybeCouncilMove()
+      return
+    }
+
+    // 初級/上級は従来のMinimaxエンジン（変更なし）
     this.uiStateInternal = { ...this.uiStateInternal, isThinking: true }
     this.notifyUpdate()
 
@@ -267,6 +288,58 @@ export class UIController {
     } finally {
       this.uiStateInternal = { ...this.uiStateInternal, isThinking: false }
       this.notifyUpdate()
+    }
+  }
+
+  /** エージェントAIモード専用: 合議制エンジンで応手する */
+  private async maybeCouncilMove(): Promise<void> {
+    const gs = this.gameState
+
+    // councilSession の isThinking をオン
+    const prevSession = this.uiStateInternal.councilSession as CouncilSession | undefined
+    const thinkingSession: CouncilSession = {
+      isThinking: true,
+      // exactOptionalPropertyTypes: undefined は代入不可のため条件付きスプレッド
+      ...(prevSession?.currentDecision !== undefined ? { currentDecision: prevSession.currentDecision } : {}),
+      decisionHistory: prevSession?.decisionHistory ?? [],
+    }
+    this.uiStateInternal = {
+      ...this.uiStateInternal,
+      isThinking: true,
+      councilSession: thinkingSession,
+    }
+    this.notifyUpdate()
+
+    try {
+      // 環境変数からAPIキーを取得（Viteが注入）
+      const apiKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_ANTHROPIC_API_KEY) as string | undefined
+
+      const decision = await this.councilEngine.deliberate(gs, gs.currentTurn, apiKey)
+
+      // councilSession を更新してUIに通知
+      const updatedSession: CouncilSession = {
+        isThinking: false,
+        currentDecision: decision,
+        decisionHistory: [...(prevSession?.decisionHistory ?? []), decision],
+      }
+      this.uiStateInternal = {
+        ...this.uiStateInternal,
+        councilSession: updatedSession,
+      }
+      this.notifyUpdate()
+
+      // 着手
+      this.executeMove(decision.finalMove)
+    } finally {
+      const session = this.uiStateInternal.councilSession as CouncilSession | undefined
+      if (session) {
+        this.uiStateInternal = {
+          ...this.uiStateInternal,
+          isThinking: false,
+          councilSession: { ...session, isThinking: false },
+        }
+        this.notifyUpdate()
+      }
     }
   }
 

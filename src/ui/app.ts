@@ -11,7 +11,9 @@ import {
 import { UIController } from './controller.js'
 import { BoardView } from './board-view.js'
 import { HandView } from './hand-view.js'
+import { CouncilPanel } from './council-panel.js'
 import { PIECE_DISPLAY } from './piece-view.js'
+import { type CouncilSession, MODE_DISPLAY } from '../ai/council/types.js'
 
 // ------------------------------------------------------------
 // メインアプリケーション
@@ -58,19 +60,28 @@ function showModeSelectScreen(root: HTMLElement): void {
 // ------------------------------------------------------------
 
 function showDifficultySelectScreen(root: HTMLElement): void {
+  // APIキー未設定時の注釈
+  const apiKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_ANTHROPIC_API_KEY) as string | undefined
+  const agentNote = apiKey
+    ? ''
+    : '<span class="agent-note">⚡ APIキー未設定（Minimaxで動作）</span>'
+
   root.innerHTML = `
     <div class="difficulty-select">
       <h2>難易度を選択</h2>
       <div class="difficulty-buttons">
         <button class="difficulty-btn" id="btn-beginner">初級</button>
         <button class="difficulty-btn" id="btn-advanced">上級</button>
+        <button class="difficulty-btn difficulty-btn--agent" id="btn-agent-ai">
+          🤖 エージェントAI
+          ${agentNote}
+        </button>
       </div>
       <button class="back-btn" id="btn-back">戻る</button>
     </div>
   `
 
   const startAI = (difficulty: Difficulty) => {
-    const savedDifficulty = difficulty
     localStorage.setItem('shogi-difficulty', difficulty)
 
     const config: GameConfig = {
@@ -79,8 +90,8 @@ function showDifficultySelectScreen(root: HTMLElement): void {
       gotePlayer:  {
         side: PlayerSide.GOTE,
         type: PlayerType.COMPUTER,
-        name: 'CPU',
-        difficulty: savedDifficulty,
+        name: difficulty === Difficulty.AGENT_AI ? '三軍師AI' : 'CPU',
+        difficulty,
       },
     }
     showGameScreen(root, config)
@@ -88,6 +99,7 @@ function showDifficultySelectScreen(root: HTMLElement): void {
 
   root.querySelector('#btn-beginner')!.addEventListener('click', () => startAI(Difficulty.BEGINNER))
   root.querySelector('#btn-advanced')!.addEventListener('click', () => startAI(Difficulty.ADVANCED))
+  root.querySelector('#btn-agent-ai')!.addEventListener('click', () => startAI(Difficulty.AGENT_AI))
   root.querySelector('#btn-back')!.addEventListener('click', () => showModeSelectScreen(root))
 }
 
@@ -96,16 +108,21 @@ function showDifficultySelectScreen(root: HTMLElement): void {
 // ------------------------------------------------------------
 
 function showGameScreen(root: HTMLElement, config: GameConfig): void {
+  const isAgentAI = config.gotePlayer.difficulty === Difficulty.AGENT_AI
+    || config.sentePlayer.difficulty === Difficulty.AGENT_AI
+
   root.innerHTML = `
-    <div class="game-screen">
+    <div class="game-screen${isAgentAI ? ' game-screen--agent' : ''}">
       <div class="game-header">
         <span class="turn-indicator" id="turn-indicator"></span>
+        ${isAgentAI ? '<span class="ai-mode-badge" id="ai-mode-badge">⚖️ 形勢判断モード</span>' : ''}
         <button class="resign-btn" id="btn-resign">投了</button>
       </div>
       <div class="game-layout">
         <div class="hand-container" id="hand-gote"></div>
         <div class="board-container" id="board-container"></div>
         <div class="hand-container" id="hand-sente"></div>
+        ${isAgentAI ? '<div class="council-panel-container" id="council-panel-container"></div>' : ''}
       </div>
     </div>
   `
@@ -118,6 +135,14 @@ function showGameScreen(root: HTMLElement, config: GameConfig): void {
   const boardView = new BoardView(boardContainer)
   const handSenteView = new HandView(handSenteContainer, PlayerSide.SENTE)
   const handGoteView  = new HandView(handGoteContainer,  PlayerSide.GOTE)
+
+  // エージェントAIモード用: 三軍師パネルとモードバッジ
+  let councilPanel: CouncilPanel | null = null
+  const modeBadgeEl = root.querySelector('#ai-mode-badge') as HTMLElement | null
+  if (isAgentAI) {
+    const panelContainer = root.querySelector('#council-panel-container') as HTMLElement
+    councilPanel = new CouncilPanel(panelContainer)
+  }
 
   let promotionDialog: HTMLElement | null = null
 
@@ -144,6 +169,25 @@ function showGameScreen(root: HTMLElement, config: GameConfig): void {
       turnIndicator.textContent = `${side}の番${check}`
       if (uiState.isThinking) {
         turnIndicator.textContent += ' 思考中...'
+      }
+    }
+
+    // 三軍師パネルとモードバッジを更新（エージェントAIモードのみ）
+    if (councilPanel && isAgentAI) {
+      const session = uiState.councilSession as CouncilSession | undefined
+      if (session?.isThinking) {
+        councilPanel.showThinking()
+        if (modeBadgeEl) {
+          modeBadgeEl.textContent = '⏳ 審議中...'
+          modeBadgeEl.className = 'ai-mode-badge mode-thinking'
+        }
+      } else if (session?.currentDecision) {
+        councilPanel.showDecision(session.currentDecision)
+        if (modeBadgeEl) {
+          const modeInfo = MODE_DISPLAY[session.currentDecision.aiMode]
+          modeBadgeEl.textContent = modeInfo.label
+          modeBadgeEl.className = `ai-mode-badge ${modeInfo.cssClass}`
+        }
       }
     }
 
