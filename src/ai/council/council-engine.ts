@@ -6,12 +6,12 @@
 import type { GameState } from '../../types/index.js'
 import { PlayerSide, Difficulty } from '../../types/index.js'
 import { findBestMove } from '../minimax.js'
-import { attackerPropose, attackerProposeHybrid } from './attacker.js'
-import { defenderPropose, defenderProposeHybrid } from './defender.js'
-import { strategistAssess, strategistAssessHybrid } from './strategist.js'
+import { attackerPropose } from './attacker.js'
+import { defenderPropose } from './defender.js'
+import { strategistAssess } from './strategist.js'
 import { applyCommanderRules } from './commander.js'
-import { geminiCommanderDecide } from './gemini-commander.js'
-import { CommanderRule, RULE_TO_MODE, type CouncilDecision, type CouncilSession } from './types.js'
+import { strandsCommanderDeliberate } from './strands/commander-agent.js'
+import type { CouncilDecision, CouncilSession } from './types.js'
 
 /** タイムアウト時間（ミリ秒） */
 const TIMEOUT_MS = 5_000
@@ -28,11 +28,9 @@ const AGENT_SEARCH_DEPTH = 3
  */
 function resolveApiKey(explicit?: string): string | undefined {
   if (explicit) return explicit
-  // Vite環境変数（ビルド時埋め込み）
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const envKey = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) as string | undefined
   if (envKey) return envKey
-  // localStorage（UIから設定）
   try {
     return localStorage.getItem('shogi-gemini-api-key') ?? undefined
   } catch {
@@ -67,7 +65,6 @@ export class CouncilEngine {
     this.session.isThinking = true
 
     try {
-      // タイムアウト付きで審議を実行
       const decision = await Promise.race([
         this._runCouncil(state, side),
         this._timeout(),
@@ -90,33 +87,22 @@ export class CouncilEngine {
     state: GameState,
     side: PlayerSide,
   ): Promise<CouncilDecision> {
-    const useHybrid = !!this.apiKey
+    if (this.apiKey) {
+      try {
+        const decision = await strandsCommanderDeliberate(state, side, this.apiKey)
+        return { ...decision, isFallback: false }
+      } catch (err) {
+        console.warn('[CouncilEngine] Strands失敗、ルールベースにフォールバック:', err)
+      }
+    }
 
-    // 3サブエージェントを並列実行（APIキーあり→Geminiハイブリッド、なし→ルールベース）
     const [attacker, defender, strategist] = await Promise.all([
-      useHybrid
-        ? attackerProposeHybrid(state, side, AGENT_SEARCH_DEPTH, this.apiKey!)
-        : Promise.resolve(attackerPropose(state, side, AGENT_SEARCH_DEPTH)),
-      useHybrid
-        ? defenderProposeHybrid(state, side, AGENT_SEARCH_DEPTH, this.apiKey!)
-        : Promise.resolve(defenderPropose(state, side, AGENT_SEARCH_DEPTH)),
-      useHybrid
-        ? strategistAssessHybrid(state, side, this.apiKey!)
-        : Promise.resolve(strategistAssess(state, side)),
+      Promise.resolve(attackerPropose(state, side, AGENT_SEARCH_DEPTH)),
+      Promise.resolve(defenderPropose(state, side, AGENT_SEARCH_DEPTH)),
+      Promise.resolve(strategistAssess(state, side)),
     ])
 
-    // 総大将の意思決定（APIキーあり→Gemini FunctionCalling、なし→ルールベース）
-    let commanderResult: Omit<CouncilDecision, 'attackerProposal' | 'defenderProposal' | 'strategistAssessment' | 'isFallback'>
-    if (useHybrid) {
-      try {
-        commanderResult = await geminiCommanderDecide(attacker, defender, strategist, state, this.apiKey!)
-      } catch {
-        // Gemini Commander失敗時はルールベースにフォールバック
-        commanderResult = applyCommanderRules(attacker, defender, strategist, state)
-      }
-    } else {
-      commanderResult = applyCommanderRules(attacker, defender, strategist, state)
-    }
+    const commanderResult = applyCommanderRules(attacker, defender, strategist, state)
 
     return {
       attackerProposal: attacker,
@@ -138,7 +124,6 @@ export class CouncilEngine {
   private _fallbackDecision(state: GameState, side: PlayerSide): CouncilDecision {
     const move = findBestMove(state, side, Difficulty.ADVANCED)
 
-    // フォールバック時も3サブエージェントのデータを揃え、ルール判定でaiModeを決定
     const attacker = attackerPropose(state, side, 2)
     const defender = defenderPropose(state, side, 2)
     const strategist = strategistAssess(state, side)
