@@ -12,6 +12,7 @@ import {
 } from '../types/index.js'
 import { GameEngine } from '../core/game.js'
 import { AIEngine } from '../ai/engine.js'
+import { findBestMove } from '../ai/minimax.js'
 import { CouncilEngine } from '../ai/council/council-engine.js'
 import { type CouncilSession } from '../ai/council/types.js'
 import { type UIState } from '../types/index.js'
@@ -240,12 +241,13 @@ export class UIController {
     this.notifyUpdate()
   }
 
-  private executeMove(move: Move): void {
+  /** 指し手を適用する。非合法手などで適用に失敗した場合は false を返す */
+  private executeMove(move: Move): boolean {
     try {
       this.gameState = this.engine.applyMove(this.gameState, move)
     } catch {
       this.clearSelection()
-      return
+      return false
     }
 
     this.uiStateInternal = {
@@ -259,6 +261,20 @@ export class UIController {
 
     // AIの手番かチェック
     this.maybeAIMove()
+    return true
+  }
+
+  /**
+   * 合議エンジンが非合法手を返した／想定外に失敗した場合の保険。
+   * Minimax で必ず合法手を 1 手指し、AI 手番でのフリーズを防ぐ。
+   */
+  private playFallbackMove(state: GameState): void {
+    try {
+      const move = findBestMove(state, state.currentTurn, Difficulty.ADVANCED)
+      this.executeMove(move)
+    } catch {
+      // 合法手が存在しない（既に詰みなど）場合は何もしない
+    }
   }
 
   private async maybeAIMove(): Promise<void> {
@@ -347,7 +363,13 @@ export class UIController {
       }
       this.notifyUpdate()
 
-      this.executeMove(decision.finalMove)
+      // 総大将が（局面ズレ等で）非合法手を返した場合は Minimax で指し直す
+      if (!this.executeMove(decision.finalMove)) {
+        this.playFallbackMove(gs)
+      }
+    } catch {
+      // 合議が想定外に失敗しても AI が必ず一手指すようフォールバック
+      this.playFallbackMove(this.gameState)
     } finally {
       const session = this.uiStateInternal.councilSession as CouncilSession | undefined
       if (session) {

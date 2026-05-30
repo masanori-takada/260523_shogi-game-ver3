@@ -29,10 +29,11 @@ export class BoardView {
     this.container.innerHTML = ''
     this.container.className = 'shogi-board'
 
-    // 筋番号（上部）
+    // 筋番号（上部）。伝統的な将棋盤に合わせ 1 筋を右端に置くため
+    // col=0(9筋) → col=8(1筋) の昇順で「9,8,…,1」と並べる
     const colLabels = document.createElement('div')
     colLabels.className = 'board-col-labels'
-    for (let col = 8; col >= 0; col--) {
+    for (let col = 0; col < 9; col++) {
       const label = document.createElement('span')
       label.textContent = String(9 - col)
       colLabels.appendChild(label)
@@ -55,7 +56,8 @@ export class BoardView {
       rowLabel.textContent = String(row + 1)
       rowElem.appendChild(rowLabel)
 
-      for (let col = 8; col >= 0; col--) {
+      // 筋ラベルと揃え、col=0(9筋) を左端・col=8(1筋) を右端に描画する
+      for (let col = 0; col < 9; col++) {
         const cell = document.createElement('div')
         cell.className = 'board-cell'
         cell.dataset['row'] = String(row)

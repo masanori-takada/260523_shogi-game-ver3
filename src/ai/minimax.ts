@@ -62,13 +62,17 @@ function alphaBeta(
   isMaximizing: boolean,
   side: PlayerSide,
 ): number {
+  const opponent = side === PlayerSide.SENTE ? PlayerSide.GOTE : PlayerSide.SENTE
+
   // 終端条件
   if (
     state.status === GameStatus.CHECKMATE ||
     state.status === GameStatus.RESIGNED
   ) {
-    // 詰まされた側が負け
-    const loser = state.status === GameStatus.CHECKMATE ? state.currentTurn : state.winner === side ? side : (side === PlayerSide.SENTE ? PlayerSide.GOTE : PlayerSide.SENTE)
+    // CHECKMATE は手番側が詰まされている。RESIGNED は winner 以外が負け。
+    const loser = state.status === GameStatus.CHECKMATE
+      ? state.currentTurn
+      : (state.winner === side ? opponent : side)
     return loser === side ? -100000 : 100000
   }
 
@@ -79,7 +83,10 @@ function alphaBeta(
   }
 
   const moves = engine.getLegalMoves(state)
-  if (moves.length === 0) return evaluate(state, side)
+  if (moves.length === 0) {
+    // 合法手が無い＝手番側の負け（将棋にステイルメイトはなく即負け）
+    return state.currentTurn === side ? -100000 : 100000
+  }
 
   if (isMaximizing) {
     let maxScore = -Infinity
